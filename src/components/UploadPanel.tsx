@@ -22,6 +22,14 @@ interface Props {
 
 const RISK_MODES: DeployMode[] = ["Delete", "Overwrite"];
 
+const DEPLOY_BAR_COLOR: Record<DeployMode, string> = {
+  Delete:    "bg-red-500",
+  Overwrite: "bg-amber-500",
+  Merge:     "bg-blue-500",
+  Skip:      "bg-emerald-500",
+  Undefined: "bg-slate-600",
+};
+
 export default function UploadPanel({
   onParsed,
   pkg,
@@ -73,53 +81,42 @@ export default function UploadPanel({
     : 0;
 
   return (
-    <div className="flex flex-col gap-0">
+    <div className="flex flex-col gap-0 h-full">
       {/* Upload zone */}
-      <div className="p-4 border-b border-slate-100">
+      <div className="p-4 border-b border-slate-800/80">
         <label
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={onDrop}
-          className={`flex flex-col items-center justify-center gap-2.5 rounded-lg border-2 border-dashed p-6 cursor-pointer transition-all
-            ${dragOver ? "border-blue-400 bg-blue-50" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"}
-            ${loading ? "pointer-events-none opacity-60" : ""}`}
+          className={`flex flex-col items-center justify-center gap-2.5 rounded-xl border-2 border-dashed cursor-pointer transition-all
+            ${pkg ? "p-3" : "p-7"}
+            ${dragOver
+              ? "border-blue-500 bg-blue-500/5"
+              : "border-slate-700 hover:border-slate-400 hover:bg-white/10 hover:shadow-md hover:-translate-y-0.5"}
+            ${loading ? "pointer-events-none opacity-50" : ""}`}
         >
-          <input
-            type="file"
-            accept=".zip"
-            className="hidden"
-            onChange={onChange}
-          />
+          <input type="file" accept=".zip" className="hidden" onChange={onChange} />
           {loading ? (
-            <div className="flex flex-col items-center gap-2 text-slate-500">
-              <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />
+            <div className="flex items-center gap-2.5 text-slate-400">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-700 border-t-blue-500" />
               <span className="text-xs font-medium">Parsing package…</span>
             </div>
           ) : pkg ? (
-            <div className="flex items-center gap-2 text-center">
-              <FileArchive className="h-5 w-5 text-blue-500 shrink-0" />
+            <div className="flex items-center gap-2">
+              <FileArchive className="h-4 w-4 text-blue-400 shrink-0" />
               <div className="text-left">
-                <p className="text-xs font-semibold text-slate-700">
-                  Replace package
-                </p>
-                <p className="text-[11px] text-slate-400">
-                  Drop file or click to browse
-                </p>
+                <p className="text-xs font-semibold text-slate-300">Replace package</p>
+                <p className="text-[11px] text-slate-600">Drop or click to browse</p>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-2 text-center">
-              <UploadCloud className="h-9 w-9 text-slate-300" />
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-800 ring-1 ring-slate-700">
+                <UploadCloud className="h-6 w-6 text-slate-500" />
+              </div>
               <div>
-                <p className="text-sm font-semibold text-slate-700">
-                  Drop a Sitecore package
-                </p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  or click to browse — .zip only
-                </p>
+                <p className="text-sm font-semibold text-slate-300">Drop a Sitecore package</p>
+                <p className="text-xs text-slate-600 mt-0.5">or click to browse — .zip only</p>
               </div>
             </div>
           )}
@@ -127,64 +124,41 @@ export default function UploadPanel({
       </div>
 
       {error && (
-        <div className="mx-4 mt-3 flex items-start gap-2 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
-          <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+        <div className="mx-4 mt-3 flex items-start gap-2 rounded-lg bg-red-900/20 border border-red-800/40 px-3 py-2.5 text-xs text-red-400">
+          <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-red-500" />
           {error}
         </div>
       )}
 
       {pkg && !loading && (
-        <>
+        <div className="flex-1 overflow-y-auto">
           {/* Package info */}
-          <Section label="Package">
-            <MetaRow
-              icon={<Tag className="h-3 w-3" />}
-              label="Name"
-              value={pkg.metadata.name || "—"}
-            />
-            <MetaRow
-              icon={<Hash className="h-3 w-3" />}
-              label="Version"
-              value={pkg.metadata.version || "—"}
-            />
-            <MetaRow
-              icon={<User className="h-3 w-3" />}
-              label="Author"
-              value={pkg.metadata.author || "—"}
-            />
+          <DarkSection label="Package">
+            <DarkMetaRow icon={<Tag className="h-3 w-3" />}  label="Name"      value={pkg.metadata.name || "—"} />
+            <DarkMetaRow icon={<Hash className="h-3 w-3" />} label="Version"   value={pkg.metadata.version || "—"} />
+            <DarkMetaRow icon={<User className="h-3 w-3" />} label="Author"    value={pkg.metadata.author || "—"} />
             {pkg.metadata.publisher && (
-              <MetaRow
-                icon={<User className="h-3 w-3" />}
-                label="Publisher"
-                value={pkg.metadata.publisher}
-              />
+              <DarkMetaRow icon={<User className="h-3 w-3" />} label="Publisher" value={pkg.metadata.publisher} />
             )}
-          </Section>
+          </DarkSection>
 
           {/* Stats */}
-          <Section label="Summary">
+          <DarkSection label="Summary">
             <div className="grid grid-cols-2 gap-2">
-              <StatCard label="Items" value={pkg.items.length} />
-              <StatCard label="Files" value={pkg.files.length} />
-              <StatCard
-                label="At Risk"
-                value={riskCount}
-                danger={riskCount > 0}
-              />
-              <StatCard
-                label="Databases"
-                value={new Set(pkg.items.map((i) => i.database)).size}
-              />
+              <StatCard label="Items"     value={pkg.items.length} />
+              <StatCard label="Files"     value={pkg.files.length} />
+              <StatCard label="At Risk"   value={riskCount} danger={riskCount > 0} />
+              <StatCard label="Databases" value={new Set(pkg.items.map((i) => i.database)).size} />
             </div>
-          </Section>
+          </DarkSection>
 
           {/* Risk callout */}
           {riskCount > 0 && (
-            <div className="mx-4 mb-1 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-800">
+            <div className="mx-4 mb-1 flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2.5 text-xs text-amber-400">
               <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500" />
               <span>
-                <strong>{riskCount}</strong> item{riskCount !== 1 ? "s" : ""}{" "}
-                with Delete or Overwrite — review before deploying.
+                <strong className="text-amber-300">{riskCount}</strong>{" "}
+                item{riskCount !== 1 ? "s" : ""} with Delete or Overwrite — review before deploying.
               </span>
             </div>
           )}
@@ -197,97 +171,69 @@ export default function UploadPanel({
 
           {/* Physical files */}
           {pkg.files.length > 0 && (
-            <Section label={`Physical Files (${pkg.files.length})`}>
+            <DarkSection label={`Physical Files (${pkg.files.length})`}>
               <ul className="space-y-0.5 max-h-40 overflow-y-auto">
                 {pkg.files.map((f) => (
                   <li
                     key={f.path}
                     title={f.path}
-                    className="text-[11px] font-mono text-slate-500 truncate py-0.5 px-1 rounded hover:bg-slate-50"
+                    className="text-[11px] font-mono text-slate-500 truncate py-0.5 px-1 rounded hover:bg-slate-800 hover:text-slate-400 transition-colors"
                   >
                     {f.path}
                   </li>
                 ))}
               </ul>
-            </Section>
+            </DarkSection>
           )}
 
           {/* Parse warnings */}
           {pkg.errors.length > 0 && (
-            <Section label="Warnings">
+            <DarkSection label="Warnings">
               {pkg.errors.map((e, i) => (
-                <p key={i} className="text-[11px] text-red-600 leading-relaxed">
-                  {e}
-                </p>
+                <p key={i} className="text-[11px] text-red-400 leading-relaxed">{e}</p>
               ))}
-            </Section>
+            </DarkSection>
           )}
-        </>
+        </div>
       )}
     </div>
   );
 }
 
-function Section({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function DarkSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="px-4 py-3 border-b border-slate-100">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
-        {label}
-      </p>
+    <div className="px-4 py-3 border-b border-slate-800/80">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2.5">{label}</p>
       {children}
     </div>
   );
 }
 
-function MetaRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function DarkMetaRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-start gap-2 py-0.5">
       <span className="mt-0.5 text-slate-400 shrink-0">{icon}</span>
       <div className="min-w-0 flex-1">
         <span className="text-[10px] text-slate-400">{label}</span>
-        <p className="text-xs font-medium text-slate-800 break-words leading-tight">
-          {value}
-        </p>
+        <p className="text-xs font-medium text-slate-100 break-words leading-tight">{value}</p>
       </div>
     </div>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  danger,
-}: {
-  label: string;
-  value: number;
-  danger?: boolean;
-}) {
+function StatCard({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
   return (
     <div
-      className={`rounded-lg px-3 py-2 text-center ${danger ? "bg-red-50 border border-red-100" : "bg-slate-50 border border-slate-100"}`}
+      className={`rounded-xl px-3 py-3 text-center border ${
+        danger
+          ? "bg-red-500/15 border-red-500/30"
+          : "bg-slate-800 border-slate-700"
+      }`}
     >
-      <p
-        className={`text-lg font-bold leading-none ${danger ? "text-red-600" : "text-slate-800"}`}
-      >
+      <p className={`text-2xl font-bold leading-none tabular-nums ${danger ? "text-red-300" : "text-white"}`}>
         {value}
       </p>
-      <p
-        className={`text-[10px] mt-0.5 ${danger ? "text-red-500" : "text-slate-400"}`}
-      >
+      <p className={`text-[10px] mt-1 font-medium uppercase tracking-wide ${danger ? "text-red-400" : "text-slate-400"}`}>
         {label}
       </p>
     </div>
@@ -295,13 +241,7 @@ function StatCard({
 }
 
 function DeployBreakdown({ pkg }: { pkg: ParsedPackage }) {
-  const modes: DeployMode[] = [
-    "Delete",
-    "Overwrite",
-    "Merge",
-    "Skip",
-    "Undefined",
-  ];
+  const modes: DeployMode[] = ["Delete", "Overwrite", "Merge", "Skip", "Undefined"];
   const counts = Object.fromEntries(
     modes.map((m) => [m, pkg.items.filter((i) => i.deployMode === m).length]),
   ) as Record<DeployMode, number>;
@@ -309,19 +249,27 @@ function DeployBreakdown({ pkg }: { pkg: ParsedPackage }) {
   const active = modes.filter((m) => counts[m] > 0);
   if (active.length === 0) return null;
 
+  const total = pkg.items.length;
+
   return (
-    <Section label="Deploy Modes">
-      <div className="space-y-1.5">
+    <DarkSection label="Deploy Modes">
+      <div className="space-y-2.5">
         {active.map((m) => (
-          <div key={m} className="flex items-center justify-between">
-            <DeployBadge mode={m} />
-            <span className="text-xs font-semibold text-slate-600">
-              {counts[m]}
-            </span>
+          <div key={m}>
+            <div className="flex items-center justify-between mb-1">
+              <DeployBadge mode={m} variant="dark" />
+              <span className="text-xs font-semibold tabular-nums text-slate-400">{counts[m]}</span>
+            </div>
+            <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${DEPLOY_BAR_COLOR[m]}`}
+                style={{ width: `${Math.max(2, (counts[m] / total) * 100)}%` }}
+              />
+            </div>
           </div>
         ))}
       </div>
-    </Section>
+    </DarkSection>
   );
 }
 
@@ -334,40 +282,34 @@ function TypeBreakdown({ pkg }: { pkg: ParsedPackage }) {
   if (sorted.length === 0) return null;
 
   return (
-    <Section label="Item Types">
+    <DarkSection label="Item Types">
       <div className="space-y-1.5">
         {sorted.map(([type, count]) => (
           <div key={type} className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TypeDot type={type} />
-              <span className="text-xs text-slate-700">{type}</span>
+              <span className="text-xs text-slate-400">{type}</span>
             </div>
-            <span className="text-xs font-semibold text-slate-500">
-              {count}
-            </span>
+            <span className="text-xs font-semibold tabular-nums text-slate-300">{count}</span>
           </div>
         ))}
       </div>
-    </Section>
+    </DarkSection>
   );
 }
 
 function TypeDot({ type }: { type: string }) {
   const colors: Record<string, string> = {
-    Template: "bg-violet-500",
-    "Template Field": "bg-violet-300",
-    "Template Section": "bg-purple-400",
-    Rendering: "bg-blue-500",
-    Layout: "bg-sky-500",
-    Placeholder: "bg-cyan-500",
-    Media: "bg-emerald-500",
-    Setting: "bg-amber-500",
-    Content: "bg-slate-400",
-    Unknown: "bg-slate-300",
+    Template:          "bg-violet-500",
+    "Template Field":  "bg-violet-400",
+    "Template Section":"bg-purple-500",
+    Rendering:         "bg-blue-500",
+    Layout:            "bg-sky-500",
+    Placeholder:       "bg-cyan-500",
+    Media:             "bg-emerald-500",
+    Setting:           "bg-amber-500",
+    Content:           "bg-slate-500",
+    Unknown:           "bg-slate-700",
   };
-  return (
-    <span
-      className={`w-2 h-2 rounded-full shrink-0 ${colors[type] ?? "bg-slate-300"}`}
-    />
-  );
+  return <span className={`w-2 h-2 rounded-full shrink-0 ${colors[type] ?? "bg-slate-700"}`} />;
 }

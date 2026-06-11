@@ -305,9 +305,7 @@ function parseZipItemPath(zipPath: string): {
 
   const pathSegments = parts.slice(2, parts.length - 4);
   const itemPath = "/" + pathSegments.join("/");
-  const id = guidRaw.replace(/[{}]/g, "").toLowerCase();
-
-  return { itemPath, id, language, version };
+  return { itemPath, id: guidRaw, language, version };
 }
 
 function parseFields(item: Record<string, unknown>): ItemField[] {
@@ -386,7 +384,7 @@ async function parseItemFile(
       templateName,
       parentId,
       sortOrder,
-      deployMode: modes.get(idKey) ?? modes.get(fromPath.id) ?? "Undefined",
+      deployMode: modes.get(idKey) ?? modes.get(fromPath.id.replace(/[{}]/g, "").toLowerCase()) ?? "Undefined",
       itemType: inferItemType(path, templateName),
       language,
       version,

@@ -29,8 +29,12 @@ body {
 button, [role="button"], label[for], summary { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 
-/* Subtle scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/* Subtle scrollbar — light panels */
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* Dark scrollbar for the dark sidebar */
+.dark-scroll::-webkit-scrollbar-thumb { background: #1e293b; }
+.dark-scroll::-webkit-scrollbar-thumb:hover { background: #334155; }
