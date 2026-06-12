@@ -31,6 +31,7 @@ const PACKAGE_TOOLS = [
     label: "Package Merge",
     icon: Layers,
     sub: "Combine packages into one",
+    comingSoon: true,
   },
 ];
 
@@ -140,35 +141,61 @@ export default function AppNav() {
 
           {open && (
             <div className="absolute left-0 top-full mt-px z-50 w-64 rounded-b-xl bg-white border border-t-0 border-slate-200 shadow-lg overflow-hidden">
-              {PACKAGE_TOOLS.map(({ href, label, icon: Icon, sub }) => {
-                const active = isActive(href);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setOpen(false)}
-                    className={`flex items-start gap-3 px-4 py-3 transition-colors border-l-2
-                      ${
-                        active
-                          ? "bg-red-50 border-red-500"
-                          : "border-transparent hover:bg-slate-50 hover:border-slate-300"
-                      }`}
-                  >
-                    <Icon
-                      className={`h-4 w-4 shrink-0 mt-0.5 ${active ? "text-red-500" : "text-slate-400"}`}
-                      strokeWidth={2}
-                    />
-                    <div>
-                      <p
-                        className={`text-[13px] font-medium ${active ? "text-red-700" : "text-slate-700"}`}
+              {PACKAGE_TOOLS.map(
+                ({ href, label, icon: Icon, sub, comingSoon }) => {
+                  const active = isActive(href);
+                  if (comingSoon) {
+                    return (
+                      <div
+                        key={href}
+                        className="flex items-start gap-3 px-4 py-3 border-l-2 border-transparent opacity-50 cursor-not-allowed"
                       >
-                        {label}
-                      </p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{sub}</p>
-                    </div>
-                  </Link>
-                );
-              })}
+                        <Icon
+                          className="h-4 w-4 shrink-0 mt-0.5 text-slate-400"
+                          strokeWidth={2}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-[13px] font-medium text-slate-700">
+                              {label}
+                            </p>
+                            <span className="text-[9px] font-bold uppercase tracking-widest bg-slate-100 text-slate-400 px-1.5 py-px rounded">
+                              Soon
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {sub}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setOpen(false)}
+                      className={`flex items-start gap-3 px-4 py-3 transition-colors border-l-2
+                      ${active ? "bg-red-50 border-red-500" : "border-transparent hover:bg-slate-50 hover:border-slate-300"}`}
+                    >
+                      <Icon
+                        className={`h-4 w-4 shrink-0 mt-0.5 ${active ? "text-red-500" : "text-slate-400"}`}
+                        strokeWidth={2}
+                      />
+                      <div>
+                        <p
+                          className={`text-[13px] font-medium ${active ? "text-red-700" : "text-slate-700"}`}
+                        >
+                          {label}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          {sub}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                },
+              )}
             </div>
           )}
         </div>
