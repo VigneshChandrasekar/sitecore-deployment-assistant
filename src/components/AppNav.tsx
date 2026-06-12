@@ -12,10 +12,10 @@ import {
 } from "lucide-react";
 
 const MAIN_TABS = [
-  { href: "/package-inspector",  label: "Package Inspector", icon: Package  },
-  { href: "/package-compare",    label: "Package Compare",   icon: GitCompare },
-  { href: "/environment-sync",   label: "Environment Sync",  icon: GitMerge },
-  { href: "/risk-analyzer",      label: "Risk Analyzer",     icon: Shield   },
+  { href: "/package-inspector", label: "Package Inspector", icon: Package },
+  { href: "/package-compare", label: "Package Compare", icon: GitCompare },
+  { href: "/environment-sync", label: "Environment Sync", icon: GitMerge },
+  { href: "/risk-analyzer", label: "Risk Analyzer", icon: Shield },
 ];
 
 export default function AppNav() {
@@ -26,21 +26,48 @@ export default function AppNav() {
 
   return (
     <header className="shrink-0 flex items-stretch h-12 bg-white border-b border-slate-400">
-
       {/* Brand */}
       <Link
         href="/package-inspector"
         className="flex items-center gap-2.5 shrink-0 px-4 w-[320px] border-r border-slate-400"
       >
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-600 shrink-0">
-          <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="w-5 h-5"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             {/* Package base */}
-            <path d="M3 12L12 7L21 12V19.5L12 22L3 19.5V12Z" stroke="white" strokeWidth="1.5" strokeLinejoin="round"/>
+            <path
+              d="M3 12L12 7L21 12V19.5L12 22L3 19.5V12Z"
+              stroke="white"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+            />
             {/* Package lid crease */}
-            <path d="M3 12L12 16.5L21 12" stroke="white" strokeWidth="1.5" strokeLinejoin="round"/>
-            <line x1="12" y1="16.5" x2="12" y2="22" stroke="white" strokeWidth="1.5"/>
+            <path
+              d="M3 12L12 16.5L21 12"
+              stroke="white"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+            />
+            <line
+              x1="12"
+              y1="16.5"
+              x2="12"
+              y2="22"
+              stroke="white"
+              strokeWidth="1.5"
+            />
             {/* Deploy arrow up */}
-            <path d="M12 3V9M9.5 5.5L12 3L14.5 5.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path
+              d="M12 3V9M9.5 5.5L12 3L14.5 5.5"
+              stroke="white"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </div>
         <div className="leading-tight">
@@ -67,9 +94,10 @@ export default function AppNav() {
               key={href}
               href={href}
               className={`relative flex items-center gap-2 px-4 text-[13px] font-medium transition-colors whitespace-nowrap border-b-2
-                ${active
-                  ? "text-slate-900 font-semibold border-red-500"
-                  : "text-slate-500 hover:text-slate-800 border-transparent hover:border-slate-400"
+                ${
+                  active
+                    ? "text-slate-900 font-semibold border-red-500"
+                    : "text-slate-500 hover:text-slate-800 border-transparent hover:border-slate-400"
                 }`}
             >
               <Icon
@@ -87,9 +115,10 @@ export default function AppNav() {
         <Link
           href="/setup-instructions"
           className={`flex items-center gap-2 px-4 text-[13px] font-medium transition-colors whitespace-nowrap border-b-2
-            ${isActive("/setup-instructions")
-              ? "text-slate-900 font-semibold border-red-500"
-              : "text-slate-500 hover:text-slate-800 border-transparent hover:border-slate-400"
+            ${
+              isActive("/setup-instructions")
+                ? "text-slate-900 font-semibold border-red-500"
+                : "text-slate-500 hover:text-slate-800 border-transparent hover:border-slate-400"
             }`}
         >
           <Terminal
@@ -99,7 +128,6 @@ export default function AppNav() {
           Setup Instructions
         </Link>
       </div>
-
     </header>
   );
 }

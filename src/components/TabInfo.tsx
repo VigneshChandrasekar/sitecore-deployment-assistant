@@ -23,7 +23,9 @@ export default function TabInfo({ title, what, onGuide }: TabInfoProps) {
           className="flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-white transition-colors shrink-0 group"
         >
           <BookOpen className="h-3 w-3" />
-          <span className="underline underline-offset-2 decoration-slate-600 group-hover:decoration-slate-300">Developer Guide</span>
+          <span className="underline underline-offset-2 decoration-slate-600 group-hover:decoration-slate-300">
+            Developer Guide
+          </span>
         </button>
       )}
     </div>

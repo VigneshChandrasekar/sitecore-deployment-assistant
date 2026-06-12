@@ -1,16 +1,16 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Terminal } from 'lucide-react'
-import type { ParsedPackage } from '@/lib/types'
-import RepackageModal from './RepackageModal'
+import { useState } from "react";
+import { Terminal } from "lucide-react";
+import type { ParsedPackage } from "@/lib/types";
+import RepackageModal from "./RepackageModal";
 
 interface Props {
-  pkg: ParsedPackage
+  pkg: ParsedPackage;
 }
 
 export default function RepackageScriptButton({ pkg }: Props) {
-  const [modalOpen, setModalOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false);
 
   return (
     <>
@@ -23,11 +23,8 @@ export default function RepackageScriptButton({ pkg }: Props) {
       </button>
 
       {modalOpen && (
-        <RepackageModal
-          pkg={pkg}
-          onClose={() => setModalOpen(false)}
-        />
+        <RepackageModal pkg={pkg} onClose={() => setModalOpen(false)} />
       )}
     </>
-  )
+  );
 }
