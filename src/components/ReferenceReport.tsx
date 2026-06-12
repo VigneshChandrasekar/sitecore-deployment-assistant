@@ -152,7 +152,7 @@ export default function ReferenceReport({ pkg, result, onClose }: Props) {
           </p>
           <button
             onClick={onClose}
-            className="shrink-0 px-4 py-1.5 rounded-md text-xs font-semibold text-white bg-slate-800 hover:bg-white hover:text-slate-900 border border-slate-700 hover:border-slate-300 transition-all hover:-translate-y-0.5 hover:shadow-md"
+            className="shrink-0 px-4 py-1.5 rounded-md text-xs font-semibold border bg-white text-slate-800 border-slate-300 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-colors"
           >
             Close
           </button>

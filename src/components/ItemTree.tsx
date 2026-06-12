@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   ChevronRight,
   ChevronDown,
@@ -264,24 +264,51 @@ function AttrRow({
   );
 }
 
+// ── Tree helpers ──────────────────────────────────────────────────────────────
+
+/** Collect fullPaths of every node that has children (can be toggled open). */
+function collectExpandablePaths(nodes: TreeNode[]): string[] {
+  const paths: string[] = [];
+  for (const node of nodes) {
+    if (node.children.length > 0) {
+      paths.push(node.fullPath);
+      paths.push(...collectExpandablePaths(node.children));
+    }
+  }
+  return paths;
+}
+
+/** Collect fullPaths of root-level nodes (default open on load). */
+function collectRootPaths(nodes: TreeNode[]): string[] {
+  return nodes.map((n) => n.fullPath);
+}
+
+function countItems(node: TreeNode): number {
+  let count = node.item ? 1 : 0;
+  for (const child of node.children) count += countItems(child);
+  return count;
+}
+
 // ── Tree node ─────────────────────────────────────────────────────────────────
 
 interface TreeNodeProps {
   node: TreeNode;
   depth: number;
   selectedId: string | null;
+  expanded: Set<string>;
+  onToggle: (path: string) => void;
   onSelect: (item: SitecoreItem) => void;
-  defaultExpanded?: boolean;
 }
 
 function TreeNodeView({
   node,
   depth,
   selectedId,
+  expanded,
+  onToggle,
   onSelect,
-  defaultExpanded = false,
 }: TreeNodeProps) {
-  const [open, setOpen] = useState(defaultExpanded);
+  const open = expanded.has(node.fullPath);
   const hasChildren = node.children.length > 0;
   const isItem = node.item !== null;
   const isSelected = isItem && selectedId === node.item!.id;
@@ -293,7 +320,7 @@ function TreeNodeView({
       <div
         role="button"
         onClick={() => {
-          if (hasChildren) setOpen((v) => !v);
+          if (hasChildren) onToggle(node.fullPath);
           if (isItem) onSelect(node.item!);
         }}
         className={`group flex items-center gap-1.5 py-1 pr-3 rounded-md cursor-pointer select-none transition-all
@@ -308,13 +335,9 @@ function TreeNodeView({
         <span className="w-4 h-4 flex items-center justify-center shrink-0">
           {hasChildren ? (
             open ? (
-              <ChevronDown
-                className={`h-3.5 w-3.5 ${isSelected ? "text-slate-400" : "text-slate-400"}`}
-              />
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
             ) : (
-              <ChevronRight
-                className={`h-3.5 w-3.5 ${isSelected ? "text-slate-400" : "text-slate-400"}`}
-              />
+              <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
             )
           ) : null}
         </span>
@@ -325,13 +348,9 @@ function TreeNodeView({
         ) : (
           <span className="w-5 h-5 flex items-center justify-center shrink-0">
             {open ? (
-              <FolderOpen
-                className={`h-3.5 w-3.5 ${isSelected ? "text-slate-400" : "text-slate-400"}`}
-              />
+              <FolderOpen className="h-3.5 w-3.5 text-slate-400" />
             ) : (
-              <Folder
-                className={`h-3.5 w-3.5 ${isSelected ? "text-slate-500" : "text-slate-400"}`}
-              />
+              <Folder className="h-3.5 w-3.5 text-slate-400" />
             )}
           </span>
         )}
@@ -375,7 +394,6 @@ function TreeNodeView({
 
       {open && hasChildren && (
         <div className="relative">
-          {/* Tree connector line */}
           <div
             className="absolute top-0 bottom-0 w-px bg-slate-200"
             style={{ left: `${8 + indent + 10}px` }}
@@ -386,8 +404,9 @@ function TreeNodeView({
               node={child}
               depth={depth + 1}
               selectedId={selectedId}
+              expanded={expanded}
+              onToggle={onToggle}
               onSelect={onSelect}
-              defaultExpanded={child.item !== null && child.children.length > 0}
             />
           ))}
         </div>
@@ -396,21 +415,26 @@ function TreeNodeView({
   );
 }
 
-function countItems(node: TreeNode): number {
-  let count = node.item ? 1 : 0;
-  for (const child of node.children) count += countItems(child);
-  return count;
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<SitecoreItem | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const dbTrees = useMemo(() => buildDatabaseTrees(pkg.items), [pkg.items]);
 
-  // Filter items by search, rebuild filtered tree
+  // Reset expansion to root-level open whenever the package changes
+  useEffect(() => {
+    const allRoots: string[] = [];
+    for (const roots of dbTrees.values()) {
+      allRoots.push(...collectRootPaths(roots));
+    }
+    setExpanded(new Set(allRoots));
+    setSelectedItem(null);
+    setSearch("");
+  }, [dbTrees]);
+
   const filtered = useMemo(() => {
     if (!search.trim()) return dbTrees;
     const q = search.toLowerCase();
@@ -431,8 +455,40 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
     ];
   }, [filtered]);
 
+  // When searching, auto-expand everything so results are visible
+  useEffect(() => {
+    if (!search.trim()) return;
+    const allPaths: string[] = [];
+    for (const roots of filtered.values()) {
+      allPaths.push(...collectExpandablePaths(roots));
+      allPaths.push(...collectRootPaths(roots));
+    }
+    setExpanded(new Set(allPaths));
+  }, [search, filtered]);
+
+  const handleToggle = useCallback((path: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(path) ? next.delete(path) : next.add(path);
+      return next;
+    });
+  }, []);
+
   const handleSelect = useCallback((item: SitecoreItem) => {
     setSelectedItem((prev) => (prev?.id === item.id ? null : item));
+  }, []);
+
+  const expandAll = useCallback(() => {
+    const allPaths: string[] = [];
+    for (const roots of dbTrees.values()) {
+      allPaths.push(...collectExpandablePaths(roots));
+      allPaths.push(...collectRootPaths(roots));
+    }
+    setExpanded(new Set(allPaths));
+  }, [dbTrees]);
+
+  const collapseAll = useCallback(() => {
+    setExpanded(new Set());
   }, []);
 
   if (pkg.items.length === 0) {
@@ -448,9 +504,9 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
     <div className="flex flex-1 overflow-hidden">
       {/* Tree panel */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Search */}
-        <div className="shrink-0 px-4 py-2.5 border-b border-slate-200 bg-white">
-          <div className="relative">
+        {/* Search + expand controls */}
+        <div className="shrink-0 px-5 py-2.5 border-b border-slate-200 bg-white flex items-center gap-3">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             <input
               type="text"
@@ -469,10 +525,27 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
               </button>
             )}
           </div>
+
+          {/* Expand / Collapse CTAs */}
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={expandAll}
+              className="text-[11px] font-medium text-slate-400 hover:text-slate-700 underline underline-offset-2 decoration-slate-300 hover:decoration-slate-500 transition-colors"
+            >
+              Expand all
+            </button>
+            <span className="text-slate-200 text-xs">|</span>
+            <button
+              onClick={collapseAll}
+              className="text-[11px] font-medium text-slate-400 hover:text-slate-700 underline underline-offset-2 decoration-slate-300 hover:decoration-slate-500 transition-colors"
+            >
+              Collapse all
+            </button>
+          </div>
         </div>
 
         {/* Tree */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
           {sortedDbs.length === 0 ? (
             <p className="text-sm text-slate-400 text-center mt-10">
               No items match your filter.
@@ -503,15 +576,16 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
                   </div>
 
                   {/* Tree nodes */}
-                  <div className="bg-white px-2 py-2">
+                  <div className="bg-white px-2 py-2 overflow-hidden">
                     {roots.map((node) => (
                       <TreeNodeView
                         key={node.fullPath}
                         node={node}
                         depth={0}
                         selectedId={selectedItem?.id ?? null}
+                        expanded={expanded}
+                        onToggle={handleToggle}
                         onSelect={handleSelect}
-                        defaultExpanded={true}
                       />
                     ))}
                   </div>
