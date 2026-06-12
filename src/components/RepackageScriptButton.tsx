@@ -16,7 +16,7 @@ export default function RepackageScriptButton({ pkg }: Props) {
     <>
       <button
         onClick={() => setModalOpen(true)}
-        className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border bg-red-600 text-white border-red-600 hover:bg-white hover:text-red-600 hover:border-red-600 transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border bg-blue-600 text-white border-blue-600 hover:bg-white hover:text-blue-600 hover:border-blue-600 transition-colors"
       >
         <Terminal className="h-3.5 w-3.5" />
         Retake Package

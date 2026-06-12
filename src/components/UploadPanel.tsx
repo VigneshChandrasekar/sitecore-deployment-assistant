@@ -11,6 +11,7 @@ import {
   User,
   Tag,
   Hash,
+  ChevronDown,
 } from "lucide-react";
 import type { ParsedPackage, DeployMode } from "@/lib/types";
 import type { ReferenceCheckResult } from "@/lib/referenceChecker";
@@ -90,7 +91,7 @@ export default function UploadPanel({
   return (
     <div className="flex flex-col gap-0">
       {/* Upload zone */}
-      <div className="p-4 border-b border-slate-800">
+      <div className="p-4 border-b-2 border-slate-700 bg-slate-950/40">
         <label
           onDragOver={(e) => {
             e.preventDefault();
@@ -99,7 +100,7 @@ export default function UploadPanel({
           onDragLeave={() => setDragOver(false)}
           onDrop={onDrop}
           className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed cursor-pointer transition-all p-4
-            ${dragOver ? "border-red-500 bg-red-500/10" : "border-slate-700 hover:border-slate-500 hover:bg-slate-800/60"}
+            ${dragOver ? "border-red-500 bg-red-500/10" : "border-slate-700 hover:border-slate-500 bg-slate-900/60"}
             ${loading ? "pointer-events-none opacity-50" : ""}`}
         >
           <input
@@ -117,7 +118,7 @@ export default function UploadPanel({
             <div className="flex items-center gap-2">
               <FileArchive className="h-4 w-4 text-red-400 shrink-0" />
               <div className="text-left">
-                <p className="text-xs font-semibold text-slate-200">
+                <p className="text-xs font-semibold text-white">
                   Replace package
                 </p>
                 <p className="text-[11px] text-slate-500">
@@ -178,7 +179,7 @@ export default function UploadPanel({
                     const { exportToExcel } = await import("@/lib/exporter");
                     exportToExcel(pkg);
                   }}
-                  className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border bg-red-600 text-white border-red-600 hover:bg-white hover:text-red-600 hover:border-red-600 transition-colors"
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border bg-transparent text-slate-300 border-slate-600 hover:bg-white hover:text-slate-800 hover:border-white transition-colors"
                 >
                   <Download className="h-3.5 w-3.5" />
                   Export
@@ -188,7 +189,7 @@ export default function UploadPanel({
           </Section>
 
           {/* Package info */}
-          <Section label="Package">
+          <Section label="Package" defaultOpen={false}>
             <MetaRow
               icon={<Tag className="h-3 w-3" />}
               label="Name"
@@ -214,7 +215,7 @@ export default function UploadPanel({
           </Section>
 
           {/* Stats */}
-          <Section label="Summary">
+          <Section label="Summary" defaultOpen={false}>
             <div className="grid grid-cols-2 gap-2">
               <StatCard label="Items" value={pkg.items.length} />
               <StatCard label="Files" value={pkg.files.length} />
@@ -244,7 +245,10 @@ export default function UploadPanel({
           <TypeBreakdown pkg={pkg} />
 
           {pkg.files.length > 0 && (
-            <Section label={`Physical Files (${pkg.files.length})`}>
+            <Section
+              label={`Physical Files (${pkg.files.length})`}
+              defaultOpen={false}
+            >
               <ul className="space-y-0.5 max-h-40 overflow-y-auto">
                 {pkg.files.map((f) => (
                   <li
@@ -260,7 +264,7 @@ export default function UploadPanel({
           )}
 
           {pkg.errors.length > 0 && (
-            <Section label="Warnings">
+            <Section label="Warnings" defaultOpen={false}>
               {pkg.errors.map((e, i) => (
                 <p key={i} className="text-[11px] text-red-400 leading-relaxed">
                   {e}
@@ -277,16 +281,27 @@ export default function UploadPanel({
 function Section({
   label,
   children,
+  defaultOpen = true,
 }: {
   label: string;
   children: React.ReactNode;
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="p-4 border-b border-slate-800">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2.5">
-        {label}
-      </p>
-      {children}
+    <div className="border-b border-slate-800">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-slate-800/50 transition-colors group"
+      >
+        <p className="text-[11px] font-semibold text-slate-400 group-hover:text-slate-300">
+          {label}
+        </p>
+        <ChevronDown
+          className={`h-3.5 w-3.5 text-slate-500 group-hover:text-slate-300 transition-transform ${open ? "" : "-rotate-90"}`}
+        />
+      </button>
+      {open && <div className="px-4 pb-4">{children}</div>}
     </div>
   );
 }
@@ -305,7 +320,7 @@ function MetaRow({
       <span className="mt-0.5 text-slate-600 shrink-0">{icon}</span>
       <div className="min-w-0 flex-1">
         <span className="text-[10px] text-slate-500">{label}</span>
-        <p className="text-xs font-medium text-slate-200 break-words leading-tight">
+        <p className="text-xs font-medium text-white break-words leading-tight">
           {value}
         </p>
       </div>
@@ -359,7 +374,7 @@ function DeployBreakdown({ pkg }: { pkg: ParsedPackage }) {
   if (active.length === 0) return null;
   const total = pkg.items.length;
   return (
-    <Section label="Deploy Modes">
+    <Section label="Deploy Modes" defaultOpen={false}>
       <div className="space-y-2.5">
         {active.map((m) => (
           <div key={m}>
@@ -389,15 +404,15 @@ function TypeBreakdown({ pkg }: { pkg: ParsedPackage }) {
   const sorted = Array.from(typeCounts.entries()).sort((a, b) => b[1] - a[1]);
   if (sorted.length === 0) return null;
   return (
-    <Section label="Item Types">
+    <Section label="Item Types" defaultOpen={false}>
       <div className="space-y-1.5">
         {sorted.map(([type, count]) => (
           <div key={type} className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TypeDot type={type} />
-              <span className="text-xs text-slate-400">{type}</span>
+              <span className="text-xs text-slate-300">{type}</span>
             </div>
-            <span className="text-xs font-semibold tabular-nums text-slate-300">
+            <span className="text-xs font-semibold tabular-nums text-white">
               {count}
             </span>
           </div>

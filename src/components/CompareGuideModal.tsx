@@ -2,25 +2,19 @@
 
 import {
   X,
-  Package,
+  GitCompare,
   Upload,
-  Search,
-  TreePine,
-  Terminal,
-  Download,
   Shield,
-  Layers,
-  AlertTriangle,
   CheckCircle,
   Info,
-  ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 
 interface Props {
   onClose: () => void;
 }
 
-export default function GuideModal({ onClose }: Props) {
+export default function CompareGuideModal({ onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="relative w-[720px] max-h-[85vh] flex flex-col rounded-xl bg-white shadow-2xl border border-slate-200">
@@ -28,14 +22,14 @@ export default function GuideModal({ onClose }: Props) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 border border-slate-200">
-              <Package className="h-4 w-4 text-slate-600" />
+              <GitCompare className="h-4 w-4 text-slate-600" />
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 Developer Guide
               </p>
               <p className="text-sm font-semibold text-slate-900">
-                Package Inspector
+                Package Compare
               </p>
             </div>
           </div>
@@ -47,107 +41,95 @@ export default function GuideModal({ onClose }: Props) {
           </button>
         </div>
 
-        {/* Scrollable content */}
+        {/* Content */}
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-10 text-sm text-slate-600 leading-relaxed">
           <Section
-            id="what-is-it"
+            id="what"
             icon={<Info className="h-4 w-4" />}
-            title="What is Package Inspector?"
+            title="What is Package Compare?"
           >
             <p>
-              Sitecore packages are <code>.zip</code> files that bundle Sitecore
-              content items, templates, renderings, layouts, and physical files
-              together for deployment. Package Inspector automates unpacking in
-              the browser — parsing every item XML file, reading the package
-              manifest, and presenting everything as a structured, searchable
-              tree.
+              Package Compare diffs two Sitecore <code>.zip</code> packages and
+              shows exactly what changed between them — items added, removed,
+              modified, or unchanged. It matches items by ID across both
+              packages and presents the results in a split view:{" "}
+              <strong>Baseline</strong> on the left,{" "}
+              <strong>New Version</strong> on the right.
             </p>
             <Callout color="blue" icon={<Info className="h-4 w-4" />}>
-              Everything runs <strong>client-side</strong>. Your package file
-              never leaves your machine.
+              Everything runs <strong>client-side</strong>. Neither package
+              leaves your machine.
             </Callout>
           </Section>
 
           <Section
-            id="how-to-use"
+            id="how"
             icon={<Upload className="h-4 w-4" />}
             title="How to use it"
           >
             <Steps>
-              <Step n={1} title="Upload your .zip package">
-                Drag and drop or click the upload zone in the left sidebar.
+              <Step n={1} title="Upload Package A — Baseline">
+                The original or currently deployed package. Drop it onto the top
+                upload zone in the sidebar.
               </Step>
-              <Step n={2} title="Review the sidebar summary">
-                Package metadata, item/file counts, deploy mode breakdown, and
-                item type breakdown.
+              <Step n={2} title="Upload Package B — New Version">
+                The updated package you want to compare against. Drop it onto
+                the second upload zone.
               </Step>
-              <Step n={3} title="Explore the item tree">
-                Tree grouped by database. Expand nodes and click items to see
-                full field details.
+              <Step n={3} title="Read the Summary">
+                The sidebar shows a count of Added, Removed, Modified, and
+                Unchanged items at a glance.
               </Step>
-              <Step n={4} title="Filter to find specific items">
-                Search by name, path, or ID — tree updates instantly.
+              <Step n={4} title="Review the split view">
+                The main area splits into two panels. Baseline shows what was
+                there; New Version shows what will be deployed. Each item is
+                colour-coded by its status.
               </Step>
-              <Step n={5} title="Act">
-                Use <strong>Retake Package</strong> to generate a re-package
-                PowerShell script, or <strong>Export</strong> for a full Excel
-                spreadsheet.
+              <Step n={5} title="Filter by name or path">
+                Use the search bar above the split view to narrow down to
+                specific items.
               </Step>
             </Steps>
           </Section>
 
           <Section
-            id="deploy-modes"
+            id="statuses"
             icon={<Shield className="h-4 w-4" />}
-            title="Deploy modes explained"
+            title="Item statuses"
           >
             <div className="space-y-3">
               {[
                 {
-                  mode: "Delete",
-                  color: "bg-red-50 border-red-200",
-                  badge: "bg-red-100 text-red-700",
-                  risk: "Critical",
-                  desc: "Deletes the item and all its children. Irreversible without a backup.",
-                },
-                {
-                  mode: "Overwrite",
-                  color: "bg-amber-50 border-amber-200",
-                  badge: "bg-amber-100 text-amber-700",
-                  risk: "High",
-                  desc: "Replaces the target item completely — all fields overwritten in all languages.",
-                },
-                {
-                  mode: "Merge",
-                  color: "bg-blue-50 border-blue-200",
-                  badge: "bg-blue-100 text-blue-700",
-                  risk: "Low",
-                  desc: "Merges fields from the package. Fields not in the package are left untouched.",
-                },
-                {
-                  mode: "Skip",
+                  status: "Added",
                   color: "bg-emerald-50 border-emerald-200",
                   badge: "bg-emerald-100 text-emerald-700",
-                  risk: "None",
-                  desc: "Skipped if the item already exists. Only installs new items.",
+                  desc: "Only in Package B. This item will be created fresh on the target environment. Appears only in the New Version panel.",
                 },
                 {
-                  mode: "Undefined",
+                  status: "Removed",
+                  color: "bg-red-50 border-red-200",
+                  badge: "bg-red-100 text-red-700",
+                  desc: "Only in Package A. This item was present in the baseline but is missing from the new version. Appears only in the Baseline panel with strikethrough.",
+                },
+                {
+                  status: "Modified",
+                  color: "bg-amber-50 border-amber-200",
+                  badge: "bg-amber-100 text-amber-700",
+                  desc: "Present in both packages but with different field values. The badge shows the number of changed fields. Appears in both panels.",
+                },
+                {
+                  status: "Unchanged",
                   color: "bg-slate-50 border-slate-200",
                   badge: "bg-slate-100 text-slate-600",
-                  risk: "Unknown",
-                  desc: "No mode specified. Sitecore's default behaviour applies (usually Merge).",
+                  desc: "Identical in both packages. Appears in both panels with no highlight. Safe to deploy.",
                 },
-              ].map(({ mode, color, badge, risk, desc }) => (
-                <div key={mode} className={`rounded-lg border p-3 ${color}`}>
+              ].map(({ status, color, badge, desc }) => (
+                <div key={status} className={`rounded-lg border p-3 ${color}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <span
-                      className={`text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wide ${badge}`}
+                      className={`text-xs font-bold px-2 py-0.5 rounded ${badge}`}
                     >
-                      {mode}
-                    </span>
-                    <span className="text-[11px] text-slate-500">
-                      Risk: {risk}
+                      {status}
                     </span>
                   </div>
                   <p className="text-xs text-slate-700 leading-relaxed">
@@ -159,34 +141,40 @@ export default function GuideModal({ onClose }: Props) {
           </Section>
 
           <Section
-            id="repackage"
-            icon={<Terminal className="h-4 w-4" />}
-            title="Retake Package"
+            id="split-view"
+            icon={<GitCompare className="h-4 w-4" />}
+            title="Understanding the split view"
           >
             <p>
-              Generates a PowerShell script that, when run inside{" "}
-              <strong>Sitecore PowerShell Extensions (SPE)</strong>, recreates
-              the same package from live Sitecore data. Choose between{" "}
-              <strong>Exact</strong> (same item set) or{" "}
-              <strong>Expand Roots</strong> (picks up new children added since
-              the original build).
+              The main panel is divided into two columns that mirror each other
+              by database and path.
             </p>
-            <Callout color="amber" icon={<AlertTriangle className="h-4 w-4" />}>
-              Requires <strong>Sitecore PowerShell Extensions</strong> installed
-              on the target instance.
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-bold text-slate-700 mb-1">
+                  Baseline (Package A)
+                </p>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Shows items as they exist in the original package. Removed
+                  items appear with a red highlight and strikethrough. Modified
+                  items are amber.
+                </p>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-bold text-slate-700 mb-1">
+                  New Version (Package B)
+                </p>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Shows items as they will be after deployment. Added items
+                  appear with a green highlight. Modified items are amber.
+                </p>
+              </div>
+            </div>
+            <Callout color="blue" icon={<Info className="h-4 w-4" />}>
+              Items are matched by <strong>Sitecore item ID</strong>, not by
+              name or path. A renamed item shows as Modified, not as a Remove +
+              Add pair.
             </Callout>
-          </Section>
-
-          <Section
-            id="excel-export"
-            icon={<Download className="h-4 w-4" />}
-            title="Export"
-          >
-            <p>
-              Downloads a <code>.xlsx</code> spreadsheet with one row per item —
-              Name, Path, ID, Database, Template, Template ID, Deploy Mode, and
-              Item Type. Useful for deployment records and sign-off.
-            </p>
           </Section>
 
           <Section
@@ -197,20 +185,20 @@ export default function GuideModal({ onClose }: Props) {
             <div className="space-y-2">
               {[
                 {
-                  title: "Always check At Risk before deploying",
-                  body: "Review every Delete and Overwrite item in the tree. A single accidental Delete can remove an entire Sitecore subtree.",
+                  title: "Compare against what is actually deployed",
+                  body: "Use the package that was last deployed to the target environment as Package A, not just any older version. This gives you the true delta for that environment.",
                 },
                 {
-                  title: "Cross-reference with Risk Analyzer",
-                  body: "Upload the package + a target environment snapshot to the Risk Analyzer to catch missing parents and template gaps.",
+                  title: "Investigate every Removed item",
+                  body: "A Removed item means it was in the baseline but is not in the new package. If the target environment has that item, the new deployment will not touch it — but it is worth confirming this is intentional.",
                 },
                 {
-                  title: "Use Retake Package for stale packages",
-                  body: "If content has changed since the package was built, use Retake Package to get a fresh copy from the source environment.",
+                  title: "Check Modified item counts carefully",
+                  body: 'A badge showing "Modified · 12" means 12 fields changed. Large field-change counts on content items often indicate accidental field resets or HTML editor changes that should be reviewed.',
                 },
                 {
-                  title: "Export for deployment records",
-                  body: "Store the Excel export alongside your deployment notes for a full audit trail of what was deployed.",
+                  title: "Use search to focus on high-risk areas",
+                  body: 'Filter by path prefixes like "templates" or "renderings" to review schema changes first, then check content separately.',
                 },
               ].map(({ title, body }) => (
                 <div
@@ -235,7 +223,7 @@ export default function GuideModal({ onClose }: Props) {
         {/* Footer */}
         <div className="shrink-0 px-6 py-3 border-t border-slate-200 bg-slate-50 rounded-b-xl flex items-center justify-between">
           <p className="text-[11px] text-slate-400">
-            Sitecore Deployment Assistant — Package Inspector Guide
+            Sitecore Deployment Assistant — Package Compare Guide
           </p>
           <button
             onClick={onClose}

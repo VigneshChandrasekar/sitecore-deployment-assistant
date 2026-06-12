@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx'
 import type { ParsedPackage, SitecoreItem } from './types'
+import type { PackageDiff } from './differ'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -250,4 +251,42 @@ export function exportToExcel(pkg: ParsedPackage): void {
   const safeName = (pkg.metadata.name || 'package').replace(/[^a-zA-Z0-9._-]/g, '_')
   const date = new Date().toISOString().slice(0, 10)
   XLSX.writeFile(wb, `${safeName}_${date}.xlsx`)
+}
+
+export function exportDiffToExcel(diff: PackageDiff): void {
+  const wb = XLSX.utils.book_new()
+
+  // Summary sheet
+  const summaryData = [
+    ['Metric', 'Count'],
+    ['Added',     diff.stats.added],
+    ['Removed',   diff.stats.removed],
+    ['Modified',  diff.stats.modified],
+    ['Unchanged', diff.stats.unchanged],
+    ['Total',     diff.items.length],
+  ]
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), 'Summary')
+
+  // Items sheet
+  const rows = [['Status', 'Name', 'Path', 'Database', 'Type', 'Fields Changed']]
+  for (const d of diff.items) {
+    const item = d.itemB ?? d.itemA!
+    rows.push([d.status, item.name, item.path, item.database, item.itemType, String(d.changes.length)])
+  }
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Items')
+
+  // Field changes sheet
+  const changeRows = [['Status', 'Item Name', 'Item Path', 'Field', 'Field Type', 'Old Value', 'New Value']]
+  for (const d of diff.items.filter(d => d.changes.length > 0)) {
+    const item = d.itemB ?? d.itemA!
+    for (const c of d.changes) {
+      changeRows.push([d.status, item.name, item.path, c.key, c.type, c.oldValue ?? '', c.newValue ?? ''])
+    }
+  }
+  if (changeRows.length > 1) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(changeRows), 'Field Changes')
+  }
+
+  const date = new Date().toISOString().slice(0, 10)
+  XLSX.writeFile(wb, `package_diff_${date}.xlsx`)
 }

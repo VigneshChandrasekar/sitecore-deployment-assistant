@@ -18,6 +18,7 @@ import {
   Folder,
   Copy,
   Check,
+  Crosshair,
 } from "lucide-react";
 import type { ParsedPackage, SitecoreItem, ItemType } from "@/lib/types";
 import { buildDatabaseTrees, type TreeNode } from "@/lib/tree";
@@ -289,24 +290,42 @@ function countItems(node: TreeNode): number {
   return count;
 }
 
+function findNodeAtPath(
+  roots: TreeNode[],
+  targetPath: string,
+): TreeNode | null {
+  for (const node of roots) {
+    if (node.fullPath === targetPath) return node;
+    if (targetPath.startsWith(node.fullPath + "/")) {
+      const found = findNodeAtPath(node.children, targetPath);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 // ── Tree node ─────────────────────────────────────────────────────────────────
 
 interface TreeNodeProps {
   node: TreeNode;
   depth: number;
+  db: string;
   selectedId: string | null;
   expanded: Set<string>;
   onToggle: (path: string) => void;
   onSelect: (item: SitecoreItem) => void;
+  onFocus: (db: string, path: string) => void;
 }
 
 function TreeNodeView({
   node,
   depth,
+  db,
   selectedId,
   expanded,
   onToggle,
   onSelect,
+  onFocus,
 }: TreeNodeProps) {
   const open = expanded.has(node.fullPath);
   const hasChildren = node.children.length > 0;
@@ -323,7 +342,7 @@ function TreeNodeView({
           if (hasChildren) onToggle(node.fullPath);
           if (isItem) onSelect(node.item!);
         }}
-        className={`group flex items-center gap-1.5 py-1 pr-3 rounded-md cursor-pointer select-none transition-all
+        className={`group flex items-center gap-1.5 py-[3px] pr-3 rounded cursor-pointer select-none transition-all
           ${
             isSelected
               ? "bg-slate-900 text-slate-100 shadow-sm"
@@ -355,16 +374,16 @@ function TreeNodeView({
           </span>
         )}
 
-        {/* Name */}
+        {/* Name — items full weight, folders muted + smaller */}
         <span
-          className={`text-sm truncate flex-1 ${
+          className={`truncate flex-1 ${
             isItem
               ? isSelected
-                ? "font-medium text-slate-100"
-                : "font-medium text-slate-800"
+                ? "text-sm font-semibold text-slate-100"
+                : "text-sm font-medium text-slate-800"
               : isSelected
-                ? "text-slate-300"
-                : "text-slate-500"
+                ? "text-[13px] font-medium text-slate-300"
+                : "text-[13px] font-medium text-slate-500"
           }`}
         >
           {node.name}
@@ -382,13 +401,34 @@ function TreeNodeView({
           </span>
         )}
 
-        {/* Child count on virtual nodes */}
+        {/* Count badge — only when collapsed */}
+        {!isItem &&
+          hasChildren &&
+          !open &&
+          (() => {
+            const n = countItems(node);
+            return (
+              <span
+                className={`text-[10px] tabular-nums font-semibold px-1.5 py-px rounded-full shrink-0
+              ${isSelected ? "bg-white/15 text-slate-300" : "bg-slate-100 text-slate-400"}`}
+              >
+                {n}
+              </span>
+            );
+          })()}
+
+        {/* Focus-drill button — appears on hover for folder nodes */}
         {!isItem && hasChildren && (
-          <span
-            className={`text-[10px] shrink-0 ${isSelected ? "text-slate-500" : "text-slate-400"}`}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onFocus(db, node.fullPath);
+            }}
+            title="Focus here"
+            className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-slate-200 transition-opacity shrink-0"
           >
-            {countItems(node)}
-          </span>
+            <Crosshair className="h-3 w-3 text-slate-400" />
+          </button>
         )}
       </div>
 
@@ -403,10 +443,12 @@ function TreeNodeView({
               key={child.fullPath}
               node={child}
               depth={depth + 1}
+              db={db}
               selectedId={selectedId}
               expanded={expanded}
               onToggle={onToggle}
               onSelect={onSelect}
+              onFocus={onFocus}
             />
           ))}
         </div>
@@ -421,10 +463,12 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<SitecoreItem | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [focusDb, setFocusDb] = useState<string | null>(null);
+  const [focusPath, setFocusPath] = useState<string | null>(null);
 
   const dbTrees = useMemo(() => buildDatabaseTrees(pkg.items), [pkg.items]);
 
-  // Reset expansion to root-level open whenever the package changes
+  // Reset on package change
   useEffect(() => {
     const allRoots: string[] = [];
     for (const roots of dbTrees.values()) {
@@ -433,6 +477,8 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
     setExpanded(new Set(allRoots));
     setSelectedItem(null);
     setSearch("");
+    setFocusDb(null);
+    setFocusPath(null);
   }, [dbTrees]);
 
   const filtered = useMemo(() => {
@@ -478,6 +524,22 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
     setSelectedItem((prev) => (prev?.id === item.id ? null : item));
   }, []);
 
+  const handleFocus = useCallback((db: string, path: string) => {
+    setFocusDb(db);
+    setFocusPath(path);
+    // auto-expand children of the focused node
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.add(path);
+      return next;
+    });
+  }, []);
+
+  const clearFocus = useCallback(() => {
+    setFocusDb(null);
+    setFocusPath(null);
+  }, []);
+
   const expandAll = useCallback(() => {
     const allPaths: string[] = [];
     for (const roots of dbTrees.values()) {
@@ -510,11 +572,11 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Filter by name, path or ID…"
+              placeholder="Search package contents…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-8 py-2 text-sm text-slate-800 placeholder-slate-400
-                focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
+                focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors"
             />
             {search && (
               <button
@@ -544,12 +606,100 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
           </div>
         </div>
 
+        {/* Breadcrumb bar — shown when focused into a subtree */}
+        {focusPath &&
+          focusDb &&
+          (() => {
+            const segments = focusPath.split("/").filter(Boolean);
+            return (
+              <div className="shrink-0 flex items-center gap-1 px-4 py-1.5 bg-blue-50 border-b border-blue-100 text-[11px] overflow-x-auto">
+                <button
+                  onClick={clearFocus}
+                  className="font-semibold text-blue-600 hover:text-blue-800 shrink-0 capitalize"
+                >
+                  {focusDb}
+                </button>
+                {segments.map((seg, i) => {
+                  const path = "/" + segments.slice(0, i + 1).join("/");
+                  const isLast = i === segments.length - 1;
+                  return (
+                    <span
+                      key={path}
+                      className="flex items-center gap-1 shrink-0"
+                    >
+                      <span className="text-blue-300">/</span>
+                      {isLast ? (
+                        <span className="font-semibold text-blue-800">
+                          {seg}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleFocus(focusDb, path)}
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {seg}
+                        </button>
+                      )}
+                    </span>
+                  );
+                })}
+                <button
+                  onClick={clearFocus}
+                  className="ml-auto shrink-0 p-0.5 rounded hover:bg-blue-100 text-blue-400 hover:text-blue-600"
+                  title="Clear focus"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            );
+          })()}
+
         {/* Tree */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
           {sortedDbs.length === 0 ? (
             <p className="text-sm text-slate-400 text-center mt-10">
               No items match your filter.
             </p>
+          ) : focusPath && focusDb ? (
+            // Focused view — show only the focused subtree
+            (() => {
+              const dbRoots = filtered.get(focusDb) ?? [];
+              const focused = findNodeAtPath(dbRoots, focusPath);
+              const nodes = focused?.children ?? [];
+              const count = focused ? countItems(focused) : 0;
+              return (
+                <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-100">
+                    <Database className="h-3 w-3 text-slate-400 shrink-0" />
+                    <span className="text-[11px] font-semibold text-slate-500 capitalize">
+                      {focusDb}
+                    </span>
+                    <span className="text-[11px] text-slate-400 mx-1">/</span>
+                    <span className="text-[11px] font-semibold text-slate-700 truncate">
+                      {focusPath.split("/").filter(Boolean).pop()}
+                    </span>
+                    <span className="ml-auto text-[10px] font-medium tabular-nums text-slate-400 bg-slate-200 px-1.5 py-px rounded-full">
+                      {count}
+                    </span>
+                  </div>
+                  <div className="bg-white px-2 py-2 overflow-hidden">
+                    {nodes.map((node) => (
+                      <TreeNodeView
+                        key={node.fullPath}
+                        node={node}
+                        depth={0}
+                        db={focusDb}
+                        selectedId={selectedItem?.id ?? null}
+                        expanded={expanded}
+                        onToggle={handleToggle}
+                        onSelect={handleSelect}
+                        onFocus={handleFocus}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()
           ) : (
             sortedDbs.map((db) => {
               const roots = filtered.get(db) ?? [];
@@ -563,15 +713,13 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
                   className="rounded-xl border border-slate-200 overflow-hidden shadow-sm"
                 >
                   {/* DB header */}
-                  <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gradient-to-r from-slate-900 to-slate-800">
-                    <div className="flex items-center justify-center w-5 h-5 rounded-md bg-white/10 shrink-0">
-                      <Database className="h-3 w-3 text-slate-300" />
-                    </div>
-                    <span className="text-sm font-semibold text-white capitalize tracking-wide">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-100">
+                    <Database className="h-3 w-3 text-slate-400 shrink-0" />
+                    <span className="text-[11px] font-semibold text-slate-500 capitalize">
                       {db}
                     </span>
-                    <span className="ml-auto text-[11px] text-slate-500 font-medium tabular-nums">
-                      {totalItems} items
+                    <span className="ml-auto text-[10px] font-medium tabular-nums text-slate-400 bg-slate-200 px-1.5 py-px rounded-full">
+                      {totalItems}
                     </span>
                   </div>
 
@@ -582,10 +730,12 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
                         key={node.fullPath}
                         node={node}
                         depth={0}
+                        db={db}
                         selectedId={selectedItem?.id ?? null}
                         expanded={expanded}
                         onToggle={handleToggle}
                         onSelect={handleSelect}
+                        onFocus={handleFocus}
                       />
                     ))}
                   </div>

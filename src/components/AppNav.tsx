@@ -1,28 +1,65 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Box,
   Package,
   GitCompare,
+  Layers,
   GitMerge,
   Shield,
   Terminal,
+  ChevronDown,
 } from "lucide-react";
 
-const MAIN_TABS = [
-  { href: "/package-inspector", label: "Package Inspector", icon: Package },
-  { href: "/package-compare", label: "Package Compare", icon: GitCompare },
+const PACKAGE_TOOLS = [
+  {
+    href: "/package-inspector",
+    label: "Package Inspector",
+    icon: Package,
+    sub: "Browse items, fields & files",
+  },
+  {
+    href: "/package-compare",
+    label: "Package Compare",
+    icon: GitCompare,
+    sub: "Diff two packages side-by-side",
+  },
+  {
+    href: "/package-merge",
+    label: "Package Merge",
+    icon: Layers,
+    sub: "Combine packages into one",
+  },
+];
+
+const OTHER_TABS = [
   { href: "/environment-sync", label: "Environment Sync", icon: GitMerge },
   { href: "/risk-analyzer", label: "Risk Analyzer", icon: Shield },
 ];
 
 export default function AppNav() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
+  const packageActive = PACKAGE_TOOLS.some((t) => isActive(t.href));
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const navLink = (active: boolean) =>
+    `relative flex items-center gap-2 px-4 text-[13px] font-medium transition-colors whitespace-nowrap border-b-2 h-full
+     ${active ? "text-blue-600 font-semibold border-blue-500" : "text-slate-500 hover:text-slate-800 border-transparent hover:border-slate-300"}`;
 
   return (
     <header className="shrink-0 flex items-stretch h-12 bg-white border-b border-slate-400">
@@ -38,14 +75,12 @@ export default function AppNav() {
             className="w-5 h-5"
             xmlns="http://www.w3.org/2000/svg"
           >
-            {/* Package base */}
             <path
               d="M3 12L12 7L21 12V19.5L12 22L3 19.5V12Z"
               stroke="white"
               strokeWidth="1.5"
               strokeLinejoin="round"
             />
-            {/* Package lid crease */}
             <path
               d="M3 12L12 16.5L21 12"
               stroke="white"
@@ -60,7 +95,6 @@ export default function AppNav() {
               stroke="white"
               strokeWidth="1.5"
             />
-            {/* Deploy arrow up */}
             <path
               d="M12 3V9M9.5 5.5L12 3L14.5 5.5"
               stroke="white"
@@ -87,21 +121,65 @@ export default function AppNav() {
 
       {/* Main nav */}
       <nav className="flex items-stretch flex-1 px-2">
-        {MAIN_TABS.map(({ href, label, icon: Icon }) => {
+        {/* Packages dropdown */}
+        <div ref={dropRef} className="relative flex items-stretch">
+          <button
+            onClick={() => setOpen((o) => !o)}
+            className={`flex items-center gap-2 px-4 text-[13px] font-medium transition-colors whitespace-nowrap border-b-2 h-full
+              ${packageActive ? "text-blue-600 font-semibold border-blue-500" : "text-slate-500 hover:text-slate-800 border-transparent hover:border-slate-300"}`}
+          >
+            <Package
+              className={`h-3.5 w-3.5 shrink-0 ${packageActive ? "text-blue-500" : "text-slate-400"}`}
+              strokeWidth={2}
+            />
+            Packages
+            <ChevronDown
+              className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""} ${packageActive ? "text-blue-500" : "text-slate-400"}`}
+            />
+          </button>
+
+          {open && (
+            <div className="absolute left-0 top-full mt-px z-50 w-64 rounded-b-xl bg-white border border-t-0 border-slate-200 shadow-lg overflow-hidden">
+              {PACKAGE_TOOLS.map(({ href, label, icon: Icon, sub }) => {
+                const active = isActive(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setOpen(false)}
+                    className={`flex items-start gap-3 px-4 py-3 transition-colors border-l-2
+                      ${
+                        active
+                          ? "bg-red-50 border-red-500"
+                          : "border-transparent hover:bg-slate-50 hover:border-slate-300"
+                      }`}
+                  >
+                    <Icon
+                      className={`h-4 w-4 shrink-0 mt-0.5 ${active ? "text-red-500" : "text-slate-400"}`}
+                      strokeWidth={2}
+                    />
+                    <div>
+                      <p
+                        className={`text-[13px] font-medium ${active ? "text-red-700" : "text-slate-700"}`}
+                      >
+                        {label}
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{sub}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Other nav items */}
+        {OTHER_TABS.map(({ href, label, icon: Icon }) => {
           const active = isActive(href);
           return (
-            <Link
-              key={href}
-              href={href}
-              className={`relative flex items-center gap-2 px-4 text-[13px] font-medium transition-colors whitespace-nowrap border-b-2
-                ${
-                  active
-                    ? "text-slate-900 font-semibold border-red-500"
-                    : "text-slate-500 hover:text-slate-800 border-transparent hover:border-slate-400"
-                }`}
-            >
+            <Link key={href} href={href} className={navLink(active)}>
               <Icon
-                className={`h-3.5 w-3.5 shrink-0 ${active ? "text-red-500" : "text-slate-400"}`}
+                className={`h-3.5 w-3.5 shrink-0 ${active ? "text-blue-500" : "text-slate-400"}`}
                 strokeWidth={2}
               />
               {label}
@@ -110,19 +188,14 @@ export default function AppNav() {
         })}
       </nav>
 
-      {/* Setup Instructions — far right utility link */}
+      {/* Setup Instructions */}
       <div className="shrink-0 flex items-stretch border-l border-slate-400">
         <Link
           href="/setup-instructions"
-          className={`flex items-center gap-2 px-4 text-[13px] font-medium transition-colors whitespace-nowrap border-b-2
-            ${
-              isActive("/setup-instructions")
-                ? "text-slate-900 font-semibold border-red-500"
-                : "text-slate-500 hover:text-slate-800 border-transparent hover:border-slate-400"
-            }`}
+          className={navLink(isActive("/setup-instructions"))}
         >
           <Terminal
-            className={`h-3.5 w-3.5 shrink-0 ${isActive("/setup-instructions") ? "text-red-500" : "text-slate-400"}`}
+            className={`h-3.5 w-3.5 shrink-0 ${isActive("/setup-instructions") ? "text-blue-500" : "text-slate-400"}`}
             strokeWidth={2}
           />
           Setup Instructions

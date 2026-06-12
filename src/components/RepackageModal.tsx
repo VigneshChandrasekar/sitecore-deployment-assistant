@@ -119,13 +119,13 @@ export default function RepackageModal({ pkg, onClose }: Props) {
                 className={`flex-1 flex items-start gap-2 px-3 py-2 rounded-lg border text-left transition-colors
                   ${
                     mode === m.value
-                      ? "border-red-500 bg-red-50"
+                      ? "border-blue-500 bg-blue-50"
                       : "border-slate-200 hover:border-slate-300 hover:bg-white"
                   }`}
               >
                 <span
                   className={`mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border
-                  ${mode === m.value ? "border-red-500 bg-red-600" : "border-slate-300"}`}
+                  ${mode === m.value ? "border-blue-500 bg-blue-600" : "border-slate-300"}`}
                 >
                   {mode === m.value && (
                     <Check className="h-2 w-2 text-white" strokeWidth={3} />
@@ -133,7 +133,7 @@ export default function RepackageModal({ pkg, onClose }: Props) {
                 </span>
                 <div>
                   <p
-                    className={`text-xs font-semibold ${mode === m.value ? "text-red-700" : "text-slate-600"}`}
+                    className={`text-xs font-semibold ${mode === m.value ? "text-blue-700" : "text-slate-600"}`}
                   >
                     {m.label}
                   </p>
@@ -193,7 +193,7 @@ export default function RepackageModal({ pkg, onClose }: Props) {
                             children.map((c) => c.path),
                           )
                         }
-                        className="h-3.5 w-3.5 rounded border-slate-300 accent-red-600 shrink-0"
+                        className="h-3.5 w-3.5 rounded border-slate-300 accent-blue-600 shrink-0"
                       />
                       <button
                         onClick={() => toggleExpand(root.path)}
@@ -204,7 +204,7 @@ export default function RepackageModal({ pkg, onClose }: Props) {
                         ) : (
                           <ChevronRight className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                         )}
-                        <Folder className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                        <Folder className="h-3.5 w-3.5 text-blue-500 shrink-0" />
                         <span className="text-xs font-medium text-slate-700 truncate">
                           {root.name}
                         </span>
@@ -273,7 +273,7 @@ export default function RepackageModal({ pkg, onClose }: Props) {
             <button
               onClick={download}
               disabled={included === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border bg-red-600 text-white border-red-600 hover:bg-white hover:text-red-600 hover:border-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border bg-blue-600 text-white border-blue-600 hover:bg-white hover:text-blue-600 hover:border-blue-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Terminal className="h-3.5 w-3.5" />
               Download Script
@@ -321,7 +321,7 @@ function ItemRow({
         type="checkbox"
         checked={checked}
         onChange={onToggle}
-        className="h-3.5 w-3.5 rounded border-slate-300 accent-red-600 shrink-0"
+        className="h-3.5 w-3.5 rounded border-slate-300 accent-blue-600 shrink-0"
       />
       {icon}
       <div className="min-w-0 flex-1">
