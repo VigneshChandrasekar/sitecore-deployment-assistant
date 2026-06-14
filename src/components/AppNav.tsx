@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Package,
-  GitCompare,
+  FileDiff,
   Layers,
   GitMerge,
   Shield,
@@ -23,7 +23,7 @@ const PACKAGE_TOOLS = [
   {
     href: "/package-compare",
     label: "Package Compare",
-    icon: GitCompare,
+    icon: FileDiff,
     sub: "Diff two packages side-by-side",
   },
   {
@@ -31,7 +31,6 @@ const PACKAGE_TOOLS = [
     label: "Package Merge",
     icon: Layers,
     sub: "Combine packages into one",
-    comingSoon: true,
   },
 ];
 
@@ -140,51 +139,28 @@ export default function AppNav() {
           </button>
 
           {open && (
-            <div className="absolute left-0 top-full mt-px z-50 w-64 rounded-b-xl bg-white border border-t-0 border-slate-200 shadow-lg overflow-hidden">
-              {PACKAGE_TOOLS.map(
-                ({ href, label, icon: Icon, sub, comingSoon }) => {
+            <div className="absolute left-0 top-full z-50 w-64 bg-white border border-slate-200 shadow-lg overflow-hidden rounded-b-xl">
+              {/* Caret anchor connecting dropdown to trigger button */}
+              <div className="absolute -top-px left-5 w-3 h-px bg-white z-10" />
+              <div className="absolute -top-1.5 left-4 w-3 h-3 bg-white border-l border-t border-slate-200 rotate-45 z-10" />
+              <div className="pt-1">
+                {PACKAGE_TOOLS.map(({ href, label, icon: Icon, sub }) => {
                   const active = isActive(href);
-                  if (comingSoon) {
-                    return (
-                      <div
-                        key={href}
-                        className="flex items-start gap-3 px-4 py-3 border-l-2 border-transparent opacity-50 cursor-not-allowed"
-                      >
-                        <Icon
-                          className="h-4 w-4 shrink-0 mt-0.5 text-slate-400"
-                          strokeWidth={2}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-[13px] font-medium text-slate-700">
-                              {label}
-                            </p>
-                            <span className="text-[9px] font-bold uppercase tracking-widest bg-slate-100 text-slate-400 px-1.5 py-px rounded">
-                              Soon
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
-                            {sub}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  }
                   return (
                     <Link
                       key={href}
                       href={href}
                       onClick={() => setOpen(false)}
-                      className={`flex items-start gap-3 px-4 py-3 transition-colors border-l-2
-                      ${active ? "bg-red-50 border-red-500" : "border-transparent hover:bg-slate-50 hover:border-slate-300"}`}
+                      className={`flex items-start gap-3 px-4 py-3 transition-colors border-l-2 focus-visible:outline-none focus-visible:bg-blue-50
+                        ${active ? "bg-blue-50 border-blue-500" : "border-transparent hover:bg-slate-50 hover:border-slate-300"}`}
                     >
                       <Icon
-                        className={`h-4 w-4 shrink-0 mt-0.5 ${active ? "text-red-500" : "text-slate-400"}`}
+                        className={`h-4 w-4 shrink-0 mt-0.5 ${active ? "text-blue-500" : "text-slate-400"}`}
                         strokeWidth={2}
                       />
                       <div>
                         <p
-                          className={`text-[13px] font-medium ${active ? "text-red-700" : "text-slate-700"}`}
+                          className={`text-[13px] font-medium ${active ? "text-blue-700" : "text-slate-700"}`}
                         >
                           {label}
                         </p>
@@ -194,8 +170,8 @@ export default function AppNav() {
                       </div>
                     </Link>
                   );
-                },
-              )}
+                })}
+              </div>
             </div>
           )}
         </div>

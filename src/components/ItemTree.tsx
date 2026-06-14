@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   ChevronRight,
   ChevronDown,
@@ -19,6 +19,7 @@ import {
   Copy,
   Check,
   Crosshair,
+  GripVertical,
 } from "lucide-react";
 import type { ParsedPackage, SitecoreItem, ItemType } from "@/lib/types";
 import { buildDatabaseTrees, type TreeNode } from "@/lib/tree";
@@ -306,6 +307,14 @@ function findNodeAtPath(
 
 // ── Tree node ─────────────────────────────────────────────────────────────────
 
+const SOURCE_COLORS = [
+  "bg-blue-100 text-blue-700",
+  "bg-violet-100 text-violet-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-orange-100 text-orange-700",
+  "bg-pink-100 text-pink-700",
+];
+
 interface TreeNodeProps {
   node: TreeNode;
   depth: number;
@@ -315,6 +324,16 @@ interface TreeNodeProps {
   onToggle: (path: string) => void;
   onSelect: (item: SitecoreItem) => void;
   onFocus: (db: string, path: string) => void;
+  sourceMap?: Map<string, number>;
+  sourceNames?: string[];
+  // Folder reorder
+  folderOrder?: Map<string, string[]>;
+  dragFolderPath?: string | null;
+  dropFolderPath?: string | null;
+  onFolderDragStart?: (path: string, db: string) => void;
+  onFolderDragOver?: (path: string) => void;
+  onFolderDrop?: (path: string, db: string) => void;
+  onFolderDragEnd?: () => void;
 }
 
 function TreeNodeView({
@@ -326,6 +345,15 @@ function TreeNodeView({
   onToggle,
   onSelect,
   onFocus,
+  sourceMap,
+  sourceNames,
+  folderOrder,
+  dragFolderPath,
+  dropFolderPath,
+  onFolderDragStart,
+  onFolderDragOver,
+  onFolderDrop,
+  onFolderDragEnd,
 }: TreeNodeProps) {
   const open = expanded.has(node.fullPath);
   const hasChildren = node.children.length > 0;
@@ -334,22 +362,49 @@ function TreeNodeView({
 
   const indent = depth * 16;
 
+  const canDrag = !isItem && hasChildren && !!onFolderDragStart;
+  const isDropTarget = canDrag && dropFolderPath === node.fullPath && dragFolderPath !== node.fullPath;
+  const isDragging = canDrag && dragFolderPath === node.fullPath;
+
+  // Sort children by folderOrder when available
+  const childrenToRender = (() => {
+    const order = folderOrder?.get(node.fullPath);
+    if (!order) return node.children;
+    return [...node.children].sort((a, b) => {
+      const ai = order.indexOf(a.name);
+      const bi = order.indexOf(b.name);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+  })();
+
   return (
     <div>
       <div
         role="button"
+        draggable={canDrag}
+        onDragStart={canDrag ? (e) => { e.stopPropagation(); e.dataTransfer.effectAllowed = "move"; onFolderDragStart!(node.fullPath, db); } : undefined}
+        onDragOver={canDrag ? (e) => { e.preventDefault(); e.stopPropagation(); onFolderDragOver!(node.fullPath); } : undefined}
+        onDrop={canDrag ? (e) => { e.preventDefault(); e.stopPropagation(); onFolderDrop!(node.fullPath, db); } : undefined}
+        onDragEnd={canDrag ? (e) => { e.stopPropagation(); onFolderDragEnd!(); } : undefined}
         onClick={() => {
           if (hasChildren) onToggle(node.fullPath);
           if (isItem) onSelect(node.item!);
         }}
         className={`group flex items-center gap-1.5 py-[3px] pr-3 rounded cursor-pointer select-none transition-all
-          ${
-            isSelected
-              ? "bg-slate-900 text-slate-100 shadow-sm"
-              : "hover:bg-slate-100/80 text-slate-800"
+          ${isDropTarget
+            ? "bg-blue-50 ring-1 ring-inset ring-blue-300 text-slate-800"
+            : isDragging
+              ? "opacity-40 text-slate-800"
+              : isSelected
+                ? "bg-slate-900 text-slate-100 shadow-sm"
+                : "hover:bg-slate-100/80 text-slate-800"
           }`}
         style={{ paddingLeft: `${8 + indent}px` }}
       >
+        {/* Drag handle — folder nodes only, when reordering is enabled */}
+        {canDrag && (
+          <GripVertical className="h-3 w-3 shrink-0 opacity-0 group-hover:opacity-40 text-slate-500 -mr-0.5" />
+        )}
         {/* Expand arrow */}
         <span className="w-4 h-4 flex items-center justify-center shrink-0">
           {hasChildren ? (
@@ -388,6 +443,24 @@ function TreeNodeView({
         >
           {node.name}
         </span>
+
+        {/* Source package badge */}
+        {isItem && sourceMap && sourceNames && (() => {
+          const key = `${node.item!.database}::${node.item!.id}`;
+          const idx = sourceMap.get(key);
+          if (idx === undefined) return null;
+          const label = sourceNames[idx];
+          const color = SOURCE_COLORS[idx % SOURCE_COLORS.length];
+          return (
+            <span
+              title={`From: ${label}`}
+              className={`shrink-0 text-[9px] font-bold px-1.5 py-px rounded-full transition-opacity
+                ${isSelected ? "opacity-100 bg-white/20 text-white" : `opacity-0 group-hover:opacity-100 ${color}`}`}
+            >
+              {idx + 1}
+            </span>
+          );
+        })()}
 
         {/* Deploy badge */}
         {isItem && (
@@ -438,7 +511,7 @@ function TreeNodeView({
             className="absolute top-0 bottom-0 w-px bg-slate-200"
             style={{ left: `${8 + indent + 10}px` }}
           />
-          {node.children.map((child) => (
+          {childrenToRender.map((child) => (
             <TreeNodeView
               key={child.fullPath}
               node={child}
@@ -449,6 +522,15 @@ function TreeNodeView({
               onToggle={onToggle}
               onSelect={onSelect}
               onFocus={onFocus}
+              sourceMap={sourceMap}
+              sourceNames={sourceNames}
+              folderOrder={folderOrder}
+              dragFolderPath={dragFolderPath}
+              dropFolderPath={dropFolderPath}
+              onFolderDragStart={onFolderDragStart}
+              onFolderDragOver={onFolderDragOver}
+              onFolderDrop={onFolderDrop}
+              onFolderDragEnd={onFolderDragEnd}
             />
           ))}
         </div>
@@ -459,12 +541,29 @@ function TreeNodeView({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
+export default function ItemTree({
+  pkg,
+  sourceMap,
+  sourceNames,
+  folderOrder,
+  onFolderReorder,
+}: {
+  pkg: ParsedPackage;
+  sourceMap?: Map<string, number>;
+  sourceNames?: string[];
+  folderOrder?: Map<string, string[]>;
+  onFolderReorder?: (parentPath: string, orderedNames: string[]) => void;
+}) {
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<SitecoreItem | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [focusDb, setFocusDb] = useState<string | null>(null);
   const [focusPath, setFocusPath] = useState<string | null>(null);
+
+  const dragFolderRef = useRef<string | null>(null);
+  const dragDbRef = useRef<string | null>(null);
+  const [dragFolderPath, setDragFolderPath] = useState<string | null>(null);
+  const [dropFolderPath, setDropFolderPath] = useState<string | null>(null);
 
   const dbTrees = useMemo(() => buildDatabaseTrees(pkg.items), [pkg.items]);
 
@@ -538,6 +637,76 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
   const clearFocus = useCallback(() => {
     setFocusDb(null);
     setFocusPath(null);
+  }, []);
+
+  const handleFolderDragStart = useCallback((path: string, db: string) => {
+    dragFolderRef.current = path;
+    dragDbRef.current = db;
+    setDragFolderPath(path);
+  }, []);
+
+  const handleFolderDragOver = useCallback((path: string) => {
+    const dragPath = dragFolderRef.current;
+    if (!dragPath) return;
+    const dragParent = dragPath.substring(0, dragPath.lastIndexOf("/"));
+    const overParent = path.substring(0, path.lastIndexOf("/"));
+    if (dragParent === overParent && path !== dragPath) {
+      setDropFolderPath(path);
+    } else {
+      setDropFolderPath(null);
+    }
+  }, []);
+
+  const handleFolderDrop = useCallback((droppedOnPath: string, db: string) => {
+    const dragPath = dragFolderRef.current;
+    if (!dragPath || dragPath === droppedOnPath) {
+      dragFolderRef.current = null;
+      dragDbRef.current = null;
+      setDragFolderPath(null);
+      setDropFolderPath(null);
+      return;
+    }
+    const parentPath = droppedOnPath.substring(0, droppedOnPath.lastIndexOf("/"));
+    const dragParent = dragPath.substring(0, dragPath.lastIndexOf("/"));
+    if (parentPath !== dragParent) return;
+
+    // Get current sibling folder names in display order
+    const dbRoots = dbTrees.get(db) ?? [];
+    const parentNode = parentPath ? findNodeAtPath(dbRoots, parentPath) : null;
+    const siblings = (parentNode ? parentNode.children : dbRoots).filter(n => n.children.length > 0);
+
+    // Apply existing folderOrder if present
+    const existingOrder = folderOrder?.get(parentPath);
+    const sortedNames = existingOrder
+      ? [...siblings].sort((a, b) => {
+          const ai = existingOrder.indexOf(a.name);
+          const bi = existingOrder.indexOf(b.name);
+          return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+        }).map(n => n.name)
+      : siblings.map(n => n.name);
+
+    const dragName = dragPath.split("/").pop()!;
+    const dropName = droppedOnPath.split("/").pop()!;
+    const from = sortedNames.indexOf(dragName);
+    const to = sortedNames.indexOf(dropName);
+    if (from === -1 || to === -1) return;
+
+    const newOrder = [...sortedNames];
+    newOrder.splice(from, 1);
+    newOrder.splice(to, 0, dragName);
+
+    onFolderReorder?.(parentPath, newOrder);
+    dragFolderRef.current = null;
+    dragDbRef.current = null;
+    setDragFolderPath(null);
+    setDropFolderPath(null);
+  }, [dbTrees, folderOrder, onFolderReorder]);
+
+  const handleFolderDragEnd = useCallback(() => {
+    dragFolderRef.current = null;
+    dragDbRef.current = null;
+    setDragFolderPath(null);
+    setDropFolderPath(null);
   }, []);
 
   const expandAll = useCallback(() => {
@@ -694,6 +863,15 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
                         onToggle={handleToggle}
                         onSelect={handleSelect}
                         onFocus={handleFocus}
+                        sourceMap={sourceMap}
+                        sourceNames={sourceNames}
+                        folderOrder={folderOrder}
+                        dragFolderPath={dragFolderPath}
+                        dropFolderPath={dropFolderPath}
+                        onFolderDragStart={onFolderReorder ? handleFolderDragStart : undefined}
+                        onFolderDragOver={onFolderReorder ? handleFolderDragOver : undefined}
+                        onFolderDrop={onFolderReorder ? handleFolderDrop : undefined}
+                        onFolderDragEnd={onFolderReorder ? handleFolderDragEnd : undefined}
                       />
                     ))}
                   </div>
@@ -736,6 +914,15 @@ export default function ItemTree({ pkg }: { pkg: ParsedPackage }) {
                         onToggle={handleToggle}
                         onSelect={handleSelect}
                         onFocus={handleFocus}
+                        sourceMap={sourceMap}
+                        sourceNames={sourceNames}
+                        folderOrder={folderOrder}
+                        dragFolderPath={dragFolderPath}
+                        dropFolderPath={dropFolderPath}
+                        onFolderDragStart={onFolderReorder ? handleFolderDragStart : undefined}
+                        onFolderDragOver={onFolderReorder ? handleFolderDragOver : undefined}
+                        onFolderDrop={onFolderReorder ? handleFolderDrop : undefined}
+                        onFolderDragEnd={onFolderReorder ? handleFolderDragEnd : undefined}
                       />
                     ))}
                   </div>
