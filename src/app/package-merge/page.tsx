@@ -11,9 +11,9 @@ import {
 } from "lucide-react";
 import TabInfo from "@/components/TabInfo";
 import MergeUploadPanel from "@/components/MergeUploadPanel";
-import ItemTree from "@/components/ItemTree";
+import ItemTree, { ItemDetail } from "@/components/ItemTree";
 import RepackageModal from "@/components/RepackageModal";
-import type { ParsedPackage } from "@/lib/types";
+import type { ParsedPackage, SitecoreItem } from "@/lib/types";
 import {
   mergePackages,
   sortItemsByFolderOrder,
@@ -48,7 +48,10 @@ export default function PackageMergePage() {
       setPage((p) => Math.min(p, maxPage));
       return next;
     });
+    setSelection(null);
   }, []);
+
+  const clearSelection = useCallback(() => setSelection(null), []);
 
   const onReorder = useCallback((from: number, to: number) => {
     setPackages((prev) => {
@@ -63,6 +66,10 @@ export default function PackageMergePage() {
     new Map(),
   );
   const [showRepackageModal, setShowRepackageModal] = useState(false);
+  const [selection, setSelection] = useState<{
+    item: SitecoreItem;
+    side: number;
+  } | null>(null);
 
   const handleFolderReorder = useCallback(
     (parentPath: string, orderedNames: string[]) => {
@@ -205,14 +212,20 @@ export default function PackageMergePage() {
                         {page + 1} / {totalPages}
                       </span>
                       <button
-                        onClick={() => setPage((p) => p - 1)}
+                        onClick={() => {
+                          setPage((p) => p - 1);
+                          clearSelection();
+                        }}
                         disabled={page === 0}
                         className="flex items-center justify-center w-7 h-7 rounded-md border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       >
                         <ChevronLeft className="h-4 w-4 text-slate-600" />
                       </button>
                       <button
-                        onClick={() => setPage((p) => p + 1)}
+                        onClick={() => {
+                          setPage((p) => p + 1);
+                          clearSelection();
+                        }}
                         disabled={page >= totalPages - 1}
                         className="flex items-center justify-center w-7 h-7 rounded-md border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       >
@@ -221,16 +234,42 @@ export default function PackageMergePage() {
                     </div>
                   </div>
 
-                  {/* Split panels */}
-                  <div className="flex flex-1 min-h-0 overflow-hidden divide-x divide-slate-200">
-                    {pagePackages.map((entry, i) => (
-                      <div
-                        key={page * PER_PAGE + i}
-                        className="flex-1 min-w-0 overflow-hidden flex flex-col"
-                      >
-                        <ItemTree pkg={entry.pkg} />
-                      </div>
-                    ))}
+                  {/* Split panels — keep both trees mounted (preserves expand state); hide the inactive one when detail is open */}
+                  <div className="flex flex-1 min-h-0 overflow-hidden">
+                    {pagePackages.map((entry, i) => {
+                      const globalIdx = page * PER_PAGE + i;
+                      const isActiveSide = selection?.side === globalIdx;
+                      const hide = selection !== null && !isActiveSide;
+                      return (
+                        <div
+                          key={globalIdx}
+                          className={`flex-1 min-w-0 overflow-hidden flex flex-col border-r border-slate-200 last:border-r-0 ${hide ? "hidden" : ""}`}
+                        >
+                          <ItemTree
+                            pkg={entry.pkg}
+                            onExternalSelect={(item) =>
+                              item
+                                ? setSelection({ item, side: globalIdx })
+                                : clearSelection()
+                            }
+                            externalSelectedId={
+                              selection?.side === globalIdx
+                                ? selection.item.id
+                                : null
+                            }
+                          />
+                        </div>
+                      );
+                    })}
+                    {/* Detail panel — fills the right slot when an item is selected */}
+                    {selection !== null &&
+                      pagePackages[selection.side - page * PER_PAGE] && (
+                        <ItemDetail
+                          fullWidth
+                          item={selection.item}
+                          onClose={clearSelection}
+                        />
+                      )}
                   </div>
                 </div>
               )}

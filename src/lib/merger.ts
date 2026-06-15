@@ -26,8 +26,11 @@ export function mergePackages(
   const idSources = new Map<string, number[]>(); // id → package indices
 
   for (let i = 0; i < pkgs.length; i++) {
+    const seen = new Set<string>();
     for (const item of pkgs[i].items) {
       const key = `${item.database}::${item.id}`;
+      if (seen.has(key)) continue; // same item in multiple languages — count this package only once
+      seen.add(key);
       const arr = idSources.get(key) ?? [];
       arr.push(i);
       idSources.set(key, arr);
@@ -115,7 +118,9 @@ export function sortItemsByFolderOrder(
       const order = folderOrder.get(parentPath);
       if (order) {
         const idx = order.indexOf(seg);
-        parts.push(idx >= 0 ? String(idx).padStart(4, "0") : `zz_${seg.toLowerCase()}`);
+        parts.push(
+          idx >= 0 ? String(idx).padStart(4, "0") : `zz_${seg.toLowerCase()}`,
+        );
       } else {
         parts.push(seg.toLowerCase());
       }

@@ -96,17 +96,21 @@ function CopyButton({ text }: { text: string }) {
 
 // ── Item detail panel ─────────────────────────────────────────────────────────
 
-function ItemDetail({
+export function ItemDetail({
   item,
   onClose,
+  fullWidth = false,
 }: {
   item: SitecoreItem;
   onClose: () => void;
+  fullWidth?: boolean;
 }) {
   const [tab, setTab] = useState<"attrs" | "fields">("attrs");
 
   return (
-    <div className="border-l border-slate-200 w-80 shrink-0 flex flex-col overflow-hidden bg-white">
+    <div
+      className={`flex flex-col overflow-hidden bg-white ${fullWidth ? "flex-1 min-w-0 border-l border-slate-200" : "border-l border-slate-200 w-80 shrink-0"}`}
+    >
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
         <ItemIcon type={item.itemType} />
@@ -141,7 +145,12 @@ function ItemDetail({
           >
             {t === "attrs"
               ? "Attributes"
-              : `Fields${item.fields.length > 0 ? ` (${item.fields.length})` : ""}`}
+              : `Fields${(() => {
+                  const n = item.fields.filter(
+                    (f) => !f.key?.startsWith("__"),
+                  ).length;
+                  return n > 0 ? ` (${n})` : "";
+                })()}`}
           </button>
         ))}
       </div>
@@ -191,42 +200,47 @@ function ItemDetail({
 
         {tab === "fields" && (
           <div className="px-4 py-3">
-            {item.fields.length === 0 ? (
-              <p className="text-xs text-slate-400 italic mt-2">
-                No fields in this item.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {item.fields.map((f, i) => (
-                  <div
-                    key={f.tfid || i}
-                    className="rounded-lg border border-slate-100 overflow-hidden"
-                  >
-                    <div className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 border-b border-slate-100">
-                      <span className="text-xs font-semibold text-slate-700 flex-1 truncate">
-                        {f.key}
-                      </span>
-                      {f.type && (
-                        <span className="text-[10px] text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200">
-                          {f.type}
+            {(() => {
+              const visibleFields = item.fields.filter(
+                (f) => !f.key?.startsWith("__"),
+              );
+              return visibleFields.length === 0 ? (
+                <p className="text-xs text-slate-400 italic mt-2">
+                  No fields in this item.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {visibleFields.map((f, i) => (
+                    <div
+                      key={f.tfid || i}
+                      className="rounded-lg border border-slate-100 overflow-hidden"
+                    >
+                      <div className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 border-b border-slate-100">
+                        <span className="text-xs font-semibold text-slate-700 flex-1 truncate">
+                          {f.key}
                         </span>
-                      )}
+                        {f.type && (
+                          <span className="text-[10px] text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                            {f.type}
+                          </span>
+                        )}
+                      </div>
+                      <div className="px-2.5 py-1.5">
+                        {f.value ? (
+                          <p className="text-[11px] font-mono text-slate-600 break-all leading-relaxed">
+                            {f.value}
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-slate-300 italic">
+                            empty
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div className="px-2.5 py-1.5">
-                      {f.value ? (
-                        <p className="text-[11px] font-mono text-slate-600 break-all leading-relaxed">
-                          {f.value}
-                        </p>
-                      ) : (
-                        <p className="text-[11px] text-slate-300 italic">
-                          empty
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
@@ -363,7 +377,10 @@ function TreeNodeView({
   const indent = depth * 16;
 
   const canDrag = !isItem && hasChildren && !!onFolderDragStart;
-  const isDropTarget = canDrag && dropFolderPath === node.fullPath && dragFolderPath !== node.fullPath;
+  const isDropTarget =
+    canDrag &&
+    dropFolderPath === node.fullPath &&
+    dragFolderPath !== node.fullPath;
   const isDragging = canDrag && dragFolderPath === node.fullPath;
 
   // Sort children by folderOrder when available
@@ -382,22 +399,54 @@ function TreeNodeView({
       <div
         role="button"
         draggable={canDrag}
-        onDragStart={canDrag ? (e) => { e.stopPropagation(); e.dataTransfer.effectAllowed = "move"; onFolderDragStart!(node.fullPath, db); } : undefined}
-        onDragOver={canDrag ? (e) => { e.preventDefault(); e.stopPropagation(); onFolderDragOver!(node.fullPath); } : undefined}
-        onDrop={canDrag ? (e) => { e.preventDefault(); e.stopPropagation(); onFolderDrop!(node.fullPath, db); } : undefined}
-        onDragEnd={canDrag ? (e) => { e.stopPropagation(); onFolderDragEnd!(); } : undefined}
+        onDragStart={
+          canDrag
+            ? (e) => {
+                e.stopPropagation();
+                e.dataTransfer.effectAllowed = "move";
+                onFolderDragStart!(node.fullPath, db);
+              }
+            : undefined
+        }
+        onDragOver={
+          canDrag
+            ? (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onFolderDragOver!(node.fullPath);
+              }
+            : undefined
+        }
+        onDrop={
+          canDrag
+            ? (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onFolderDrop!(node.fullPath, db);
+              }
+            : undefined
+        }
+        onDragEnd={
+          canDrag
+            ? (e) => {
+                e.stopPropagation();
+                onFolderDragEnd!();
+              }
+            : undefined
+        }
         onClick={() => {
           if (hasChildren) onToggle(node.fullPath);
           if (isItem) onSelect(node.item!);
         }}
         className={`group flex items-center gap-1.5 py-[3px] pr-3 rounded cursor-pointer select-none transition-all
-          ${isDropTarget
-            ? "bg-blue-50 ring-1 ring-inset ring-blue-300 text-slate-800"
-            : isDragging
-              ? "opacity-40 text-slate-800"
-              : isSelected
-                ? "bg-slate-900 text-slate-100 shadow-sm"
-                : "hover:bg-slate-100/80 text-slate-800"
+          ${
+            isDropTarget
+              ? "bg-blue-50 ring-1 ring-inset ring-blue-300 text-slate-800"
+              : isDragging
+                ? "opacity-40 text-slate-800"
+                : isSelected
+                  ? "bg-slate-900 text-slate-100 shadow-sm"
+                  : "hover:bg-slate-100/80 text-slate-800"
           }`}
         style={{ paddingLeft: `${8 + indent}px` }}
       >
@@ -445,22 +494,25 @@ function TreeNodeView({
         </span>
 
         {/* Source package badge */}
-        {isItem && sourceMap && sourceNames && (() => {
-          const key = `${node.item!.database}::${node.item!.id}`;
-          const idx = sourceMap.get(key);
-          if (idx === undefined) return null;
-          const label = sourceNames[idx];
-          const color = SOURCE_COLORS[idx % SOURCE_COLORS.length];
-          return (
-            <span
-              title={`From: ${label}`}
-              className={`shrink-0 text-[9px] font-bold px-1.5 py-px rounded-full transition-opacity
+        {isItem &&
+          sourceMap &&
+          sourceNames &&
+          (() => {
+            const key = `${node.item!.database}::${node.item!.id}`;
+            const idx = sourceMap.get(key);
+            if (idx === undefined) return null;
+            const label = sourceNames[idx];
+            const color = SOURCE_COLORS[idx % SOURCE_COLORS.length];
+            return (
+              <span
+                title={`From: ${label}`}
+                className={`shrink-0 text-[9px] font-bold px-1.5 py-px rounded-full transition-opacity
                 ${isSelected ? "opacity-100 bg-white/20 text-white" : `opacity-0 group-hover:opacity-100 ${color}`}`}
-            >
-              {idx + 1}
-            </span>
-          );
-        })()}
+              >
+                {idx + 1}
+              </span>
+            );
+          })()}
 
         {/* Deploy badge */}
         {isItem && (
@@ -547,12 +599,16 @@ export default function ItemTree({
   sourceNames,
   folderOrder,
   onFolderReorder,
+  onExternalSelect,
+  externalSelectedId,
 }: {
   pkg: ParsedPackage;
   sourceMap?: Map<string, number>;
   sourceNames?: string[];
   folderOrder?: Map<string, string[]>;
   onFolderReorder?: (parentPath: string, orderedNames: string[]) => void;
+  onExternalSelect?: (item: SitecoreItem | null) => void;
+  externalSelectedId?: string | null;
 }) {
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<SitecoreItem | null>(null);
@@ -566,6 +622,11 @@ export default function ItemTree({
   const [dropFolderPath, setDropFolderPath] = useState<string | null>(null);
 
   const dbTrees = useMemo(() => buildDatabaseTrees(pkg.items), [pkg.items]);
+
+  // Sync internal highlight when external controller clears selection (e.g. detail panel X)
+  useEffect(() => {
+    if (externalSelectedId === null) setSelectedItem(null);
+  }, [externalSelectedId]);
 
   // Reset on package change
   useEffect(() => {
@@ -619,9 +680,14 @@ export default function ItemTree({
     });
   }, []);
 
-  const handleSelect = useCallback((item: SitecoreItem) => {
-    setSelectedItem((prev) => (prev?.id === item.id ? null : item));
-  }, []);
+  const handleSelect = useCallback(
+    (item: SitecoreItem) => {
+      const next = selectedItem?.id === item.id ? null : item;
+      setSelectedItem(next);
+      onExternalSelect?.(next);
+    },
+    [selectedItem, onExternalSelect],
+  );
 
   const handleFocus = useCallback((db: string, path: string) => {
     setFocusDb(db);
@@ -657,50 +723,62 @@ export default function ItemTree({
     }
   }, []);
 
-  const handleFolderDrop = useCallback((droppedOnPath: string, db: string) => {
-    const dragPath = dragFolderRef.current;
-    if (!dragPath || dragPath === droppedOnPath) {
+  const handleFolderDrop = useCallback(
+    (droppedOnPath: string, db: string) => {
+      const dragPath = dragFolderRef.current;
+      if (!dragPath || dragPath === droppedOnPath) {
+        dragFolderRef.current = null;
+        dragDbRef.current = null;
+        setDragFolderPath(null);
+        setDropFolderPath(null);
+        return;
+      }
+      const parentPath = droppedOnPath.substring(
+        0,
+        droppedOnPath.lastIndexOf("/"),
+      );
+      const dragParent = dragPath.substring(0, dragPath.lastIndexOf("/"));
+      if (parentPath !== dragParent) return;
+
+      // Get current sibling folder names in display order
+      const dbRoots = dbTrees.get(db) ?? [];
+      const parentNode = parentPath
+        ? findNodeAtPath(dbRoots, parentPath)
+        : null;
+      const siblings = (parentNode ? parentNode.children : dbRoots).filter(
+        (n) => n.children.length > 0,
+      );
+
+      // Apply existing folderOrder if present
+      const existingOrder = folderOrder?.get(parentPath);
+      const sortedNames = existingOrder
+        ? [...siblings]
+            .sort((a, b) => {
+              const ai = existingOrder.indexOf(a.name);
+              const bi = existingOrder.indexOf(b.name);
+              return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+            })
+            .map((n) => n.name)
+        : siblings.map((n) => n.name);
+
+      const dragName = dragPath.split("/").pop()!;
+      const dropName = droppedOnPath.split("/").pop()!;
+      const from = sortedNames.indexOf(dragName);
+      const to = sortedNames.indexOf(dropName);
+      if (from === -1 || to === -1) return;
+
+      const newOrder = [...sortedNames];
+      newOrder.splice(from, 1);
+      newOrder.splice(to, 0, dragName);
+
+      onFolderReorder?.(parentPath, newOrder);
       dragFolderRef.current = null;
       dragDbRef.current = null;
       setDragFolderPath(null);
       setDropFolderPath(null);
-      return;
-    }
-    const parentPath = droppedOnPath.substring(0, droppedOnPath.lastIndexOf("/"));
-    const dragParent = dragPath.substring(0, dragPath.lastIndexOf("/"));
-    if (parentPath !== dragParent) return;
-
-    // Get current sibling folder names in display order
-    const dbRoots = dbTrees.get(db) ?? [];
-    const parentNode = parentPath ? findNodeAtPath(dbRoots, parentPath) : null;
-    const siblings = (parentNode ? parentNode.children : dbRoots).filter(n => n.children.length > 0);
-
-    // Apply existing folderOrder if present
-    const existingOrder = folderOrder?.get(parentPath);
-    const sortedNames = existingOrder
-      ? [...siblings].sort((a, b) => {
-          const ai = existingOrder.indexOf(a.name);
-          const bi = existingOrder.indexOf(b.name);
-          return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-        }).map(n => n.name)
-      : siblings.map(n => n.name);
-
-    const dragName = dragPath.split("/").pop()!;
-    const dropName = droppedOnPath.split("/").pop()!;
-    const from = sortedNames.indexOf(dragName);
-    const to = sortedNames.indexOf(dropName);
-    if (from === -1 || to === -1) return;
-
-    const newOrder = [...sortedNames];
-    newOrder.splice(from, 1);
-    newOrder.splice(to, 0, dragName);
-
-    onFolderReorder?.(parentPath, newOrder);
-    dragFolderRef.current = null;
-    dragDbRef.current = null;
-    setDragFolderPath(null);
-    setDropFolderPath(null);
-  }, [dbTrees, folderOrder, onFolderReorder]);
+    },
+    [dbTrees, folderOrder, onFolderReorder],
+  );
 
   const handleFolderDragEnd = useCallback(() => {
     dragFolderRef.current = null;
@@ -858,7 +936,11 @@ export default function ItemTree({
                         node={node}
                         depth={0}
                         db={focusDb}
-                        selectedId={selectedItem?.id ?? null}
+                        selectedId={
+                          externalSelectedId !== undefined
+                            ? (externalSelectedId ?? null)
+                            : (selectedItem?.id ?? null)
+                        }
                         expanded={expanded}
                         onToggle={handleToggle}
                         onSelect={handleSelect}
@@ -868,10 +950,18 @@ export default function ItemTree({
                         folderOrder={folderOrder}
                         dragFolderPath={dragFolderPath}
                         dropFolderPath={dropFolderPath}
-                        onFolderDragStart={onFolderReorder ? handleFolderDragStart : undefined}
-                        onFolderDragOver={onFolderReorder ? handleFolderDragOver : undefined}
-                        onFolderDrop={onFolderReorder ? handleFolderDrop : undefined}
-                        onFolderDragEnd={onFolderReorder ? handleFolderDragEnd : undefined}
+                        onFolderDragStart={
+                          onFolderReorder ? handleFolderDragStart : undefined
+                        }
+                        onFolderDragOver={
+                          onFolderReorder ? handleFolderDragOver : undefined
+                        }
+                        onFolderDrop={
+                          onFolderReorder ? handleFolderDrop : undefined
+                        }
+                        onFolderDragEnd={
+                          onFolderReorder ? handleFolderDragEnd : undefined
+                        }
                       />
                     ))}
                   </div>
@@ -909,7 +999,11 @@ export default function ItemTree({
                         node={node}
                         depth={0}
                         db={db}
-                        selectedId={selectedItem?.id ?? null}
+                        selectedId={
+                          externalSelectedId !== undefined
+                            ? (externalSelectedId ?? null)
+                            : (selectedItem?.id ?? null)
+                        }
                         expanded={expanded}
                         onToggle={handleToggle}
                         onSelect={handleSelect}
@@ -919,10 +1013,18 @@ export default function ItemTree({
                         folderOrder={folderOrder}
                         dragFolderPath={dragFolderPath}
                         dropFolderPath={dropFolderPath}
-                        onFolderDragStart={onFolderReorder ? handleFolderDragStart : undefined}
-                        onFolderDragOver={onFolderReorder ? handleFolderDragOver : undefined}
-                        onFolderDrop={onFolderReorder ? handleFolderDrop : undefined}
-                        onFolderDragEnd={onFolderReorder ? handleFolderDragEnd : undefined}
+                        onFolderDragStart={
+                          onFolderReorder ? handleFolderDragStart : undefined
+                        }
+                        onFolderDragOver={
+                          onFolderReorder ? handleFolderDragOver : undefined
+                        }
+                        onFolderDrop={
+                          onFolderReorder ? handleFolderDrop : undefined
+                        }
+                        onFolderDragEnd={
+                          onFolderReorder ? handleFolderDragEnd : undefined
+                        }
                       />
                     ))}
                   </div>
@@ -933,8 +1035,8 @@ export default function ItemTree({
         </div>
       </div>
 
-      {/* Detail panel */}
-      {selectedItem && (
+      {/* Detail panel — only when not delegated to an external handler */}
+      {!onExternalSelect && selectedItem && (
         <ItemDetail item={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
     </div>
