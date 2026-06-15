@@ -11,6 +11,7 @@ import {
   Shield,
   Terminal,
   ChevronDown,
+  SendToBack,
 } from "lucide-react";
 
 const PACKAGE_TOOLS = [
@@ -31,6 +32,12 @@ const PACKAGE_TOOLS = [
     label: "Package Merge",
     icon: Layers,
     sub: "Combine packages into one",
+  },
+  {
+    href: "/package-publish",
+    label: "Publish Packages",
+    icon: SendToBack,
+    sub: "Generate publish script from packages",
   },
 ];
 

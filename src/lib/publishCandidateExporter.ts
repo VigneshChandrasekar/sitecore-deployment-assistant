@@ -97,6 +97,22 @@ export function buildPublishInstructions(
   );
 }
 
+export function buildPublishInstructionsFromItems(
+  items: SitecoreItem[],
+): PublishInstruction[] {
+  const toFake = (item: SitecoreItem) => ({
+    status: "source-only" as const,
+    id: item.id,
+    name: item.name,
+    path: item.path,
+    templateName: item.templateName ?? "",
+    sourceItem: null,
+    targetItem: null,
+    fieldDiffs: [],
+  });
+  return buildInstructions(items.map(toFake), []);
+}
+
 export function buildPublishInstructionsFromAnalysis(
   result: AnalysisResult,
 ): PublishInstruction[] {
