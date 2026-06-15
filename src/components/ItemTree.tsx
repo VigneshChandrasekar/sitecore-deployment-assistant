@@ -20,6 +20,7 @@ import {
   Check,
   Crosshair,
   GripVertical,
+  Download,
 } from "lucide-react";
 import type { ParsedPackage, SitecoreItem, ItemType } from "@/lib/types";
 import { buildDatabaseTrees, type TreeNode } from "@/lib/tree";
@@ -100,10 +101,12 @@ export function ItemDetail({
   item,
   onClose,
   fullWidth = false,
+  showDownloadXml = false,
 }: {
   item: SitecoreItem;
   onClose: () => void;
   fullWidth?: boolean;
+  showDownloadXml?: boolean;
 }) {
   const [tab, setTab] = useState<"attrs" | "fields">("attrs");
 
@@ -122,6 +125,25 @@ export function ItemDetail({
             {item.itemType}
           </p>
         </div>
+        {showDownloadXml && item.rawXml && (
+          <button
+            title="Download original XML"
+            onClick={() => {
+              const blob = new Blob([item.rawXml!], {
+                type: "application/xml;charset=utf-8",
+              });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `${item.key || item.name}.xml`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+        )}
         <button
           onClick={onClose}
           className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
@@ -601,6 +623,7 @@ export default function ItemTree({
   onFolderReorder,
   onExternalSelect,
   externalSelectedId,
+  showDownloadXml,
 }: {
   pkg: ParsedPackage;
   sourceMap?: Map<string, number>;
@@ -609,6 +632,7 @@ export default function ItemTree({
   onFolderReorder?: (parentPath: string, orderedNames: string[]) => void;
   onExternalSelect?: (item: SitecoreItem | null) => void;
   externalSelectedId?: string | null;
+  showDownloadXml?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<SitecoreItem | null>(null);
@@ -1037,7 +1061,11 @@ export default function ItemTree({
 
       {/* Detail panel — only when not delegated to an external handler */}
       {!onExternalSelect && selectedItem && (
-        <ItemDetail item={selectedItem} onClose={() => setSelectedItem(null)} />
+        <ItemDetail
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          showDownloadXml={showDownloadXml}
+        />
       )}
     </div>
   );

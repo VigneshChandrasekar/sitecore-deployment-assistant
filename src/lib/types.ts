@@ -50,6 +50,7 @@ export interface SitecoreItem {
   language: string;
   version: number;
   fields: ItemField[];
+  rawXml?: string;
 }
 
 export interface PackageFile {

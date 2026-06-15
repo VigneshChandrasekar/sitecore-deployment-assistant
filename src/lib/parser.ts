@@ -389,6 +389,7 @@ async function parseItemFile(
       language,
       version,
       fields,
+      rawXml: xmlContent,
     };
   } catch {
     return null;
