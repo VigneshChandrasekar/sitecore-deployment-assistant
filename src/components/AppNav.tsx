@@ -12,6 +12,7 @@ import {
   Terminal,
   ChevronDown,
   SendToBack,
+  ScrollText,
 } from "lucide-react";
 
 const PACKAGE_TOOLS = [
@@ -42,6 +43,7 @@ const PACKAGE_TOOLS = [
 ];
 
 const OTHER_TABS = [
+  { href: "/log-analyzer", label: "Log Analyzer", icon: ScrollText },
   { href: "/environment-sync", label: "Environment Sync", icon: GitMerge },
   { href: "/risk-analyzer", label: "Risk Analyzer", icon: Shield },
 ];
