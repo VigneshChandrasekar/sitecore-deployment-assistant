@@ -11,7 +11,10 @@ import {
   Check,
 } from "lucide-react";
 import type { ParsedPackage } from "@/lib/types";
-import type { RepackageMode } from "@/lib/repackageScriptGenerator";
+import type {
+  RepackageMode,
+  PackageMeta,
+} from "@/lib/repackageScriptGenerator";
 import { classifyItems } from "@/lib/repackageScriptGenerator";
 
 interface Props {
@@ -39,6 +42,14 @@ export default function RepackageModal({ pkg, onClose }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(
     new Set(roots.map((r) => r.path)),
   );
+  const [meta, setMeta] = useState<PackageMeta>({
+    name: pkg.metadata.name || "",
+    version: pkg.metadata.version || "1.0",
+    author: pkg.metadata.author || "",
+    publisher: pkg.metadata.publisher || "",
+  });
+  const setField = (field: keyof PackageMeta, value: string) =>
+    setMeta((prev) => ({ ...prev, [field]: value }));
 
   const toggle = (path: string) =>
     setExcluded((prev) => {
@@ -76,7 +87,7 @@ export default function RepackageModal({ pkg, onClose }: Props) {
   const download = async () => {
     const { downloadRepackageScript } =
       await import("@/lib/repackageScriptGenerator");
-    downloadRepackageScript(pkg, mode, excluded);
+    downloadRepackageScript(pkg, mode, excluded, meta);
     onClose();
   };
 
@@ -104,6 +115,39 @@ export default function RepackageModal({ pkg, onClose }: Props) {
           >
             <X className="h-4 w-4" />
           </button>
+        </div>
+
+        {/* Package metadata */}
+        <div className="shrink-0 px-5 py-3 border-b border-slate-200 bg-white">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2.5">
+            Package Details
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <MetaField
+              label="Name"
+              value={meta.name}
+              onChange={(v) => setField("name", v)}
+              placeholder="my-package"
+            />
+            <MetaField
+              label="Version"
+              value={meta.version}
+              onChange={(v) => setField("version", v)}
+              placeholder="1.0"
+            />
+            <MetaField
+              label="Author"
+              value={meta.author}
+              onChange={(v) => setField("author", v)}
+              placeholder="Your Name"
+            />
+            <MetaField
+              label="Publisher"
+              value={meta.publisher}
+              onChange={(v) => setField("publisher", v)}
+              placeholder="Your Organisation"
+            />
+          </div>
         </div>
 
         {/* Mode picker */}
@@ -281,6 +325,33 @@ export default function RepackageModal({ pkg, onClose }: Props) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function MetaField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">
+        {label}
+      </label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 focus:bg-white transition-colors"
+      />
     </div>
   );
 }
